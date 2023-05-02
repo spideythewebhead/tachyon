@@ -1,0 +1,11 @@
+# Which paths to watch for file changes
+file_generation_paths:
+  - "lib/src/main.dart"
+  - "lib/src/models/**"
+
+generated_file_line_length: 100
+
+# External plugins to use for code generation
+plugins:
+  - data_class_plugin
+  - http_client_plugin
