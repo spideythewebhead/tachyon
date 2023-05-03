@@ -1,3 +1,3 @@
 # Tachyon
 
-An fast alternative of `build_runner` to generate code.
+A fast and simple alternative for `build_runner` to generate dart code.
