@@ -30,6 +30,7 @@ class BuildCommand extends BaseCommand with UtilsCommandMixin {
   @override
   Future<void> execute() async {
     ensureHasPubspec();
+    ensureHasTachyonConfig();
 
     await registerPlugins(tachyon: _tachyon, projectDirectoryPath: directory.path);
     await _tachyon.indexProject();

@@ -29,6 +29,7 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
   @override
   Future<void> execute() async {
     ensureHasPubspec();
+    ensureHasTachyonConfig();
 
     if (!Platform.isWindows) {
       ProcessSignal.sigterm.watch().listen((_) => _dispose());

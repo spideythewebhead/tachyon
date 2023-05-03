@@ -25,3 +25,7 @@ class MissingDataClassPluginImportException implements TachyonException {
 
   final String relativeFilePath;
 }
+
+class TachyonConfigNotFoundException implements TachyonException {
+  const TachyonConfigNotFoundException();
+}
