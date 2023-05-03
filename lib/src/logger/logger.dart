@@ -23,20 +23,20 @@ abstract class Logger {
 
   void log(Object? object, LogSeverity? severity) {
     if (object != null) {
-      object.toString().split('\n').forEach((String line) {
+      for (final String line in object.toString().split('\n')) {
         if (severity == null) {
-          writeln('${DateTime.now()}\t$line');
+          writeln(line);
         } else {
-          writeln('${DateTime.now()}\t${severity.name.toUpperCase().padRight(10)}\t$line');
+          writeln('${severity.name.toUpperCase().padRight(6)}\t$line');
         }
-      });
+      }
       return;
     }
 
     if (severity == null) {
-      writeln('${DateTime.now()}\t$object');
+      writeln(object);
     } else {
-      writeln('${DateTime.now()}\t${severity.name.toUpperCase().padRight(10)}\t$object');
+      writeln('${severity.name.toUpperCase().padRight(6)}\t$object');
     }
   }
 
