@@ -1,0 +1,7 @@
+file_generation_paths:
+  - "lib/example.dart"
+
+plugins:
+  - example
+
+generated_file_line_length: 100
