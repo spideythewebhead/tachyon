@@ -7,6 +7,7 @@ import 'package:dart_style/dart_style.dart';
 import 'package:glob/glob.dart';
 import 'package:path/path.dart' as path;
 import 'package:rxdart/rxdart.dart';
+import 'package:tachyon/src/constants.dart';
 import 'package:tachyon/src/core/code_writer.dart';
 import 'package:tachyon/src/core/declaration_finder.dart';
 import 'package:tachyon/src/core/find_package_path_by_import.dart';
@@ -280,7 +281,6 @@ class Tachyon {
     logger.debug('$indent~ Starting build for $relativeFilePath');
 
     final String header = (StringBuffer()
-          ..writeln()
           ..writeln('// AUTO GENERATED - DO NOT MODIFY')
           ..writeln('// ignore_for_file: type=lint')
           ..writeln()
@@ -295,9 +295,9 @@ class Tachyon {
         hook(compilationUnit, targetFilePath),
     ];
     codeWriter.writeln(await Future.wait(futures)
-        .then((List<String?> results) => results.whereType<String>().join('\n')));
+        .then((List<String?> results) => results.whereType<String>().join(kNewLine)));
 
-    final String content = codeWriter.content;
+    final String content = codeWriter.content.trimRight();
     if (content.length == header.length && content == header) {
       try {
         await io.File(outputFilePath).delete();
