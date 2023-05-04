@@ -61,7 +61,7 @@ extension ArgParserX on ArgParser {
 }
 
 extension ArgResultsX on ArgResults {
-  dynamic getValue(ArgumentOption option) {
-    return this[option.name] ?? option.defaultsTo;
+  T getValue<T>(ArgumentOption option) {
+    return (this[option.name] ?? option.defaultsTo) as T;
   }
 }

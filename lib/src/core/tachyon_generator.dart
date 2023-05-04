@@ -24,6 +24,7 @@ import 'package:watcher/watcher.dart';
 import 'package:yaml/yaml.dart';
 
 final RegExp _dartFileNameMatcher = RegExp(r'^[a-zA-Z0-9_]+.dart$');
+final RegExp _dartGeneratedFileNameMatcher = RegExp(r'.gen.dart$');
 
 class Tachyon {
   Tachyon({
@@ -64,10 +65,13 @@ class Tachyon {
   /// Watches this project for any files changes and rebuilds when necessary
   Future<void> watchProject({
     void Function()? onReady,
+    bool deleteExistingGeneratedFiles = false,
   }) async {
     final Completer<void> completer = Completer<void>();
     await indexProject();
-    await buildProject();
+    await buildProject(
+      deleteExistingGeneratedFiles: deleteExistingGeneratedFiles,
+    );
     _watchSubscription = _watcher.events
         .debounceTime(const Duration(milliseconds: 100))
         .listen(_onWatchEvent, onDone: () {
@@ -187,9 +191,18 @@ class Tachyon {
   /// Builds the project
   ///
   /// **Project must be indexed before it can correctly build**
-  Future<void> buildProject() async {
-    logger.info('~ Building project..');
+  Future<void> buildProject({
+    bool deleteExistingGeneratedFiles = false,
+  }) async {
     final Stopwatch stopwatch = Stopwatch()..start();
+    if (deleteExistingGeneratedFiles) {
+      logger.info('~ Deleting existing generated files');
+      await _deleteGeneratedFiles();
+      logger.info('~ Deleted existing generated files in ${stopwatch.elapsedMilliseconds}ms..');
+      stopwatch.reset();
+    }
+
+    logger.info('~ Building project..');
 
     for (final MapEntry<String, ParsedFileData> entry in _filesRegistry.entries) {
       final String targetFilePath = entry.key;
@@ -346,5 +359,25 @@ class Tachyon {
           reportTime: false,
         )
     ]);
+  }
+
+  Future<void> _deleteGeneratedFiles() async {
+    final Iterable<io.File> generatedFiles = directory
+        .listSync(recursive: true) //
+        .where((io.FileSystemEntity entity) {
+      return entity is io.File &&
+          _dartGeneratedFileNameMatcher.hasMatch(path.basename(entity.path));
+    }).cast<io.File>();
+
+    try {
+      await Future.wait<void>(
+        <Future<io.FileSystemEntity>>[
+          for (final io.File file in generatedFiles) file.delete(),
+        ],
+        eagerError: false,
+      );
+    } catch (_) {
+      // ignore any error
+    }
   }
 }

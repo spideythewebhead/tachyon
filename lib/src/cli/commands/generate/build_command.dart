@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:tachyon/src/cli/commands/arguments.dart';
 import 'package:tachyon/src/cli/commands/base_command.dart';
+import 'package:tachyon/src/cli/commands/generate/generate_arguments.dart';
 import 'package:tachyon/src/cli/commands/mixins.dart';
-
 import 'package:tachyon/src/core/tachyon_generator.dart';
 import 'package:tachyon/src/plugin_api/register_plugins.dart';
 
@@ -14,7 +15,9 @@ class BuildCommand extends BaseCommand with UtilsCommandMixin {
   }) : _tachyon = Tachyon(
           directory: directory,
           logger: logger,
-        );
+        ) {
+    argParser.addArgumentOptions(GenerateArgumentOption.options);
+  }
 
   final Tachyon _tachyon;
 
@@ -34,7 +37,10 @@ class BuildCommand extends BaseCommand with UtilsCommandMixin {
 
     await registerPlugins(tachyon: _tachyon, projectDirectoryPath: directory.path);
     await _tachyon.indexProject();
-    return await _tachyon.buildProject();
+    return await _tachyon.buildProject(
+      deleteExistingGeneratedFiles:
+          argResults!.getValue<bool>(GenerateArgumentOption.deleteExistingGeneratedFiles),
+    );
   }
 
   @override

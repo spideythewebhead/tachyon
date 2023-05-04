@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:tachyon/src/cli/commands/arguments.dart';
 import 'package:tachyon/src/cli/commands/base_command.dart';
+import 'package:tachyon/src/cli/commands/generate/generate_arguments.dart';
 import 'package:tachyon/src/cli/commands/mixins.dart';
 import 'package:tachyon/src/core/tachyon_generator.dart';
 import 'package:tachyon/src/plugin_api/register_plugins.dart';
@@ -13,7 +15,9 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
   }) : _tachyon = Tachyon(
           directory: directory,
           logger: logger,
-        );
+        ) {
+    argParser.addArgumentOptions(GenerateArgumentOption.options);
+  }
 
   final Tachyon _tachyon;
 
@@ -37,7 +41,11 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
     ProcessSignal.sigint.watch().listen((_) => _dispose());
 
     await registerPlugins(tachyon: _tachyon, projectDirectoryPath: directory.path);
-    await _tachyon.watchProject(onReady: () => logger.debug('Listening'));
+    await _tachyon.watchProject(
+      onReady: () => logger.debug('Listening'),
+      deleteExistingGeneratedFiles:
+          argResults!.getValue<bool>(GenerateArgumentOption.deleteExistingGeneratedFiles),
+    );
   }
 
   void _dispose() {
