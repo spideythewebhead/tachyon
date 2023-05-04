@@ -1,0 +1,10 @@
+name: Name of the package
+
+code_generator:
+  file: File path relative from lib folder
+  className: Code generator class name
+
+annotations:
+  - a list
+  - of
+  - annotation names
