@@ -1,5 +1,6 @@
 import 'package:analyzer_plugin/utilities/change_builder/change_builder_dart.dart';
 
+/// Simple proxy interface for [StringBuffer] and [DartEditBuilder]
 abstract class CodeWriter {
   factory CodeWriter.stringBuffer() = _StringBufferCodeWriter;
   factory CodeWriter.dartEditBuilder(DartEditBuilder builder) = _DartEditBuilderCodeWriter;

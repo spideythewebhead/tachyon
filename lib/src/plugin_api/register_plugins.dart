@@ -13,9 +13,7 @@ import 'package:tachyon/src/plugin_api/external_plugin_config.dart';
 import 'package:tachyon/tachyon.dart';
 import 'package:yaml/yaml.dart';
 
-const String _kDartToolFolderName = '.dart_tool';
-const String _kTachyonPluginConfigFileName = 'tachyon_plugin_config.yaml';
-
+// Generates the entrypoint for the tachyon plugins
 String _pluginMainDartTemplate(List<ExternalPluginConfig> plugins) {
   String pluginsImportCode = <String>[
     for (final ExternalPluginConfig plugin in plugins)
@@ -39,7 +37,7 @@ Isolate.spawn((SendPort mainSendPort) {
       ).unit;
       final TachyonPluginCodeGenerator generator = ${plugin.codeGenerator.className}();
       final String generatedCode = await generator.generate(
-        BuildInfo(
+        FileChangeBuildInfo(
           projectDirectoryPath: message.projectDirectoryPath,
           targetFilePath: message.absoluteFilePath,
           compilationUnit: unit,
@@ -101,7 +99,7 @@ Future<void> registerPlugins({
   required String projectDirectoryPath,
 }) async {
   final File packageConfigFile =
-      File(path.join(projectDirectoryPath, _kDartToolFolderName, 'package_config.json'));
+      File(path.join(projectDirectoryPath, kDartToolFolderName, 'package_config.json'));
 
   if (!await packageConfigFile.exists()) {
     throw const DartToolFolderNotFoundException();
@@ -138,15 +136,15 @@ Future<void> registerPlugins({
         path.isRelative(package.rootUri.path)
             ? path.canonicalize(path.join(
                 projectDirectoryPath,
-                _kDartToolFolderName,
+                kDartToolFolderName,
                 package.rootUri.path,
               ))
             : package.rootUri.path,
-        _kTachyonPluginConfigFileName,
+        kTachyonPluginConfigFileName,
       ),
     );
     if (!await pluginConfigurationFile.exists()) {
-      tachyon.logger.warning('$_kTachyonPluginConfigFileName not found for plugin $pluginName');
+      tachyon.logger.warning('$kTachyonPluginConfigFileName not found for plugin $pluginName');
       continue;
     }
 
@@ -165,16 +163,16 @@ Future<void> registerPlugins({
   final List<RegisterApiMessage> externalPluginsRegisterApiMessage = <RegisterApiMessage>[];
   final File dartProgram = await File(path.join(
     projectDirectoryPath,
-    _kDartToolFolderName,
+    kDartToolFolderName,
     'tachyon',
-    'tachyon_main.dart',
+    'main.dart',
   )).create(recursive: true);
   await dartProgram.writeAsString(_pluginMainDartTemplate(validExternalPluginsConfigs));
 
-  final Completer<void> setupFuture = Completer<void>();
-  final ReceivePort receivePort = ReceivePort();
+  final Completer<void> pluginsSetupCompleter = Completer<void>();
+  final ReceivePort mainIsolateReceivePort = ReceivePort();
 
-  final Stream<ApiMessage> apiMessageStream = receivePort
+  final Stream<ApiMessage> apiMessageStream = mainIsolateReceivePort
       .asBroadcastStream()
       .cast<Map<dynamic, dynamic>>()
       .map<ApiMessage>(ApiMessage.fromJson);
@@ -183,7 +181,7 @@ Future<void> registerPlugins({
     if (message is RegisterApiMessage) {
       externalPluginsRegisterApiMessage.add(message);
       if (externalPluginsRegisterApiMessage.length == validExternalPluginsConfigs.length) {
-        setupFuture.complete();
+        pluginsSetupCompleter.complete();
       }
       return;
     }
@@ -209,16 +207,16 @@ Future<void> registerPlugins({
   final Isolate isolate = await Isolate.spawnUri(
     dartProgram.uri,
     const <String>[],
-    receivePort.sendPort,
+    mainIsolateReceivePort.sendPort,
     errorsAreFatal: false,
     checked: false,
   );
 
-  await setupFuture.future;
+  await pluginsSetupCompleter.future;
 
   tachyon.addDisposeHook(() async {
     await apiMessageSubscription.cancel();
-    receivePort.close();
+    mainIsolateReceivePort.close();
     isolate.kill();
   });
 
@@ -229,6 +227,7 @@ Future<void> registerPlugins({
 
   tachyon.addCodeGenerationHook((CompilationUnit compilationUnit, String absoluteFilePath) async {
     Map<String, RegisterApiMessage> pluginNameToRegisterApiMessage = <String, RegisterApiMessage>{};
+    // Gather all plugins that can handle the annotations found in this compilation unit
     for (final CompilationUnitMember member in compilationUnit.declarations) {
       final List<RegisterApiMessage> registerApiMessages =
           externalPluginsRegisterApiMessage.where((RegisterApiMessage message) {
@@ -241,9 +240,13 @@ Future<void> registerPlugins({
     }
 
     final StringBuffer buffer = StringBuffer();
-    for (final RegisterApiMessage match in pluginNameToRegisterApiMessage.values) {
-      final String fileModifiedMessageId = pluginNameToIdGenerator[match.pluginName]!.getNext();
-      match.sendPort.send(FileModifiedApiMessage(
+
+    Future<void> informPluginForFileChange(
+      String pluginName,
+      SendPort sendPort,
+    ) async {
+      final String fileModifiedMessageId = pluginNameToIdGenerator[pluginName]!.getNext();
+      sendPort.send(FileModifiedApiMessage(
         id: fileModifiedMessageId,
         projectDirectoryPath: projectDirectoryPath,
         absoluteFilePath: absoluteFilePath,
@@ -259,9 +262,14 @@ Future<void> registerPlugins({
         buffer.write(generatedCodeApiMessage.code);
       }
     }
+
+    await Future.wait(<Future<void>>[
+      for (final RegisterApiMessage message in pluginNameToRegisterApiMessage.values)
+        informPluginForFileChange(message.pluginName, message.sendPort)
+    ]);
+
     return buffer.toString();
   });
-  await setupFuture.future;
 
   tachyon.logger.info(
     '~ Registered ${externalPluginsRegisterApiMessage.length} out of ${tachyonConfig.plugins.length} plugins',

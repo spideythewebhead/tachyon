@@ -1,5 +1,6 @@
 import 'package:glob/glob.dart';
 
+/// Data class for tachyon_config.yaml
 class TachyonConfig {
   TachyonConfig({
     required this.fileGenerationPaths,
@@ -28,20 +29,3 @@ class TachyonConfig {
   final int generatedFileLineLength;
   final List<String> plugins;
 }
-
-// class PluginConfig {
-//   const PluginConfig({
-//     required this.name,
-//     this.config,
-//   });
-
-//   factory PluginConfig.fromJson(Map<dynamic, dynamic> json) {
-//     return PluginConfig(
-//       name: json['name'] as String,
-//       config: json['config'] as dynamic,
-//     );
-//   }
-
-//   final String name;
-//   final dynamic config;
-// }
