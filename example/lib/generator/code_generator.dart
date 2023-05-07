@@ -11,7 +11,7 @@ class MyCustomCodeGenerator extends TachyonPluginCodeGenerator {
     // 1. Project directory
     // 2. Target file absolute path
     // 3. Compilation unit of the current file
-    BuildInfo buildInfo,
+    FileChangeBuildInfo buildInfo,
     // TachyonDeclarationFinder is a helper that lets you find a class or an enum through the indexed project
     TachyonDeclarationFinder declarationFinder,
     Logger logger,

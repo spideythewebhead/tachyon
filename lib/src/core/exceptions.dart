@@ -1,3 +1,4 @@
+/// Base class for exceptions thrown by Tachyon
 abstract class TachyonException implements Exception {
   const TachyonException();
 }

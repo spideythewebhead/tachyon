@@ -1,5 +1,9 @@
 import 'package:analyzer/dart/ast/ast.dart';
 
+/// Data holder for a field declaration
+///
+/// This is a helper class so plugins can use it as a base class instead of using [FieldDeclaration]
+/// directly in the code generators
 class DeclarationInfo {
   DeclarationInfo({
     required this.name,

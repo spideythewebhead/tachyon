@@ -23,12 +23,10 @@ abstract class Logger {
 
   void log(Object? object, LogSeverity? severity) {
     if (object != null) {
-      for (final String line in object.toString().split('\n')) {
-        if (severity == null) {
-          writeln(line);
-        } else {
-          writeln('${severity.name.toUpperCase().padRight(6)}\t$line');
-        }
+      if (severity == null) {
+        writeln(object);
+      } else {
+        writeln('${severity.name.toUpperCase().padRight(6)}\t$object');
       }
       return;
     }

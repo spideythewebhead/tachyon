@@ -1,6 +1,9 @@
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:tachyon/src/extensions/extensions.dart';
 
+/// Helper class that allows to interact with [Annotation]
+///
+/// Provides convenient methods to extract positioned and named parameters values from an annotation
 class AnnotationValueExtractor {
   AnnotationValueExtractor(this._annotation);
 

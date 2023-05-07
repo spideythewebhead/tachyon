@@ -14,11 +14,8 @@ class CliRunner extends CommandRunner<void> {
           'Tachyon code generator.'.bold(),
         ) {
     <BaseCommand>[
-      // InstallCommand(logger: logger),
-      // AnalyzeCommand(logger: logger),
       BuildCommand(logger: logger, directory: Directory.current),
       WatchCommand(logger: logger, directory: Directory.current),
-      // ResyncCommand(logger: logger)
     ].forEach(addCommand);
   }
 

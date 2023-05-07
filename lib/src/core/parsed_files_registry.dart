@@ -2,6 +2,7 @@ import 'dart:collection';
 
 import 'package:tachyon/src/core/parsed_file_data.dart';
 
+/// A [Map] that maps an absolute file path to [ParsedFileData]
 class ParsedFilesRegistry with MapMixin<String, ParsedFileData> {
   ParsedFilesRegistry();
 

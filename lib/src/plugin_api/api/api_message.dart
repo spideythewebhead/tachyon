@@ -12,6 +12,9 @@ final Map<String, _ApiMessageFromJson> _fromJsonMapper = <String, _ApiMessageFro
   LogApiMessage._kName: LogApiMessage.fromJson,
 };
 
+/// Base class for messages between isolates used in plugins
+///
+/// As isolates can only pass basic data structures the messages are transformed to and from maps (JSON)
 abstract class ApiMessage {
   const ApiMessage();
 

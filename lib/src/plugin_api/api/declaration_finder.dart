@@ -5,7 +5,6 @@ import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:tachyon/src/core/declaration_finder.dart';
 import 'package:tachyon/src/core/parse_file_extension.dart';
-import 'package:tachyon/src/logger/logger.dart';
 import 'package:tachyon/src/plugin_api/api/api_message.dart';
 import 'package:tachyon/src/plugin_api/simple_id_generator.dart';
 
@@ -62,26 +61,4 @@ class TachyonDeclarationFinder {
     }
     return null;
   }
-}
-
-class BuildInfo {
-  BuildInfo({
-    required this.projectDirectoryPath,
-    required this.targetFilePath,
-    required this.compilationUnit,
-  });
-
-  final String projectDirectoryPath;
-  final String targetFilePath;
-  final CompilationUnit compilationUnit;
-}
-
-abstract class TachyonPluginCodeGenerator {
-  TachyonPluginCodeGenerator();
-
-  FutureOr<String> generate(
-    BuildInfo buildInfo,
-    TachyonDeclarationFinder declarationFinder,
-    Logger logger,
-  );
 }

@@ -1,5 +1,10 @@
 import 'package:analyzer/dart/ast/ast.dart';
 
+/// Helper class that allows to interact with [TypeAnnotation]
+///
+/// Provides convenient methods to check primitive types and get the full declared type
+///
+/// TODO(pantelis): support check for function type
 class CustomDartType {
   CustomDartType(
     this.name,

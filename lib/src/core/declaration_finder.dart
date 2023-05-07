@@ -1,26 +1,22 @@
 import 'dart:io';
 
-import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:path/path.dart' as path;
 import 'package:tachyon/src/core/find_package_path_by_import.dart';
-import 'package:tachyon/src/core/packages_dependency_graph.dart';
-import 'package:tachyon/src/core/parse_file_extension.dart';
 import 'package:tachyon/src/core/parsed_file_data.dart';
 import 'package:tachyon/src/core/parsed_files_registry.dart';
 
+/// Helper class that allows to find a [ClassDeclaration] or [EnumDeclaration] in an indexed project
+///
 class DeclarationFinder {
   DeclarationFinder({
     required final String projectDirectoryPath,
     required final ParsedFilesRegistry parsedFilesRegistry,
-    required final DependencyGraph dependencyGraph,
   })  : _projectDirectoryPath = projectDirectoryPath,
-        _parsedFilesRegistry = parsedFilesRegistry,
-        _dependencyGraph = dependencyGraph;
+        _parsedFilesRegistry = parsedFilesRegistry;
 
   final String _projectDirectoryPath;
   final ParsedFilesRegistry _parsedFilesRegistry;
-  final DependencyGraph _dependencyGraph;
 
   Future<ClassOrEnumDeclarationMatch?> findClassOrEnumDeclarationByName(
     String name, {
@@ -40,6 +36,7 @@ class DeclarationFinder {
     required String targetFilePath,
     required String currentDirectoryPath,
   }) async {
+    // Check if declaration exists on the same file
     NamedCompilationUnitMember? nodeDeclaration =
         _findClassOrEnumDeclaration(name: name, unit: compilationUnit);
     if (nodeDeclaration != null) {
@@ -49,6 +46,7 @@ class DeclarationFinder {
       );
     }
 
+    // List of parsed files from import directives that are indexed
     final List<ParsedFileData> parsedFiles = <ParsedFileData>[];
 
     for (final Directive directive in compilationUnit.directives) {
@@ -62,40 +60,22 @@ class DeclarationFinder {
         continue;
       }
 
-      final String? dartFilePath = await findDartFileFromUri(
+      final String? dartFilePath = await findDartFileFromDirectiveUri(
         projectDirectoryPath: _projectDirectoryPath,
         currentDirectoryPath: currentDirectoryPath,
         uri: directiveUri,
       );
 
+      // If import file not found or the file is not part of the project skip
       if (dartFilePath == null || !path.isWithin(_projectDirectoryPath, dartFilePath)) {
         continue;
-      }
-
-      final File dartFile = File(dartFilePath);
-      if (!await dartFile.exists()) {
-        continue;
-      }
-
-      final DateTime lastModifiedAt = await dartFile.lastModified();
-
-      if (!_dependencyGraph.hasDependency(targetFilePath, dartFilePath)) {
-        _dependencyGraph.add(targetFilePath, dartFilePath);
-      }
-
-      if (!_parsedFilesRegistry.containsKey(dartFilePath) ||
-          lastModifiedAt.isAfter(_parsedFilesRegistry[dartFilePath]!.lastModifiedAt)) {
-        _parsedFilesRegistry[dartFilePath] = ParsedFileData(
-          absolutePath: dartFilePath,
-          compilationUnit: dartFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-          lastModifiedAt: lastModifiedAt,
-        );
       }
 
       parsedFiles.add(_parsedFilesRegistry[dartFilePath]!);
     }
 
     for (final ParsedFileData parsedFileData in parsedFiles) {
+      // Check if declaration exists in import file
       nodeDeclaration = _findClassOrEnumDeclaration(
         name: name,
         unit: parsedFileData.compilationUnit,
@@ -107,6 +87,7 @@ class DeclarationFinder {
         );
       }
 
+      // If the declaration does not exists in the file, check if all the exports of the file
       final ClassOrEnumDeclarationMatch? match = await _recursivelyExploreExports(
         name,
         currentDirectoryPath: File(parsedFileData.absolutePath).parent.absolute.path,
@@ -130,7 +111,7 @@ class DeclarationFinder {
         continue;
       }
 
-      final String? exportDartFilePath = await findDartFileFromUri(
+      final String? exportDartFilePath = await findDartFileFromDirectiveUri(
         projectDirectoryPath: _projectDirectoryPath,
         currentDirectoryPath: currentDirectoryPath,
         uri: directive.uri.stringValue!,
@@ -142,6 +123,7 @@ class DeclarationFinder {
 
       final ParsedFileData parsedFileData = _parsedFilesRegistry[exportDartFilePath]!;
 
+      // Check if declaration exists in file
       NamedCompilationUnitMember? nodeDeclaration =
           _findClassOrEnumDeclaration(name: name, unit: parsedFileData.compilationUnit);
       if (nodeDeclaration != null) {
@@ -151,6 +133,7 @@ class DeclarationFinder {
         );
       }
 
+      // If the declaration does not exists in the file, check if all the exports of the file
       final ClassOrEnumDeclarationMatch? match = await _recursivelyExploreExports(
         name,
         currentDirectoryPath: File(exportDartFilePath).parent.absolute.path,
@@ -169,11 +152,7 @@ class DeclarationFinder {
     required CompilationUnit unit,
   }) {
     for (final CompilationUnitMember declaration in unit.declarations) {
-      if (declaration is ClassDeclaration && declaration.name.lexeme == name) {
-        return declaration;
-      }
-
-      if (declaration is EnumDeclaration && declaration.name.lexeme == name) {
+      if (declaration is NamedCompilationUnitMember && declaration.name.lexeme == name) {
         return declaration;
       }
     }
@@ -182,7 +161,6 @@ class DeclarationFinder {
 }
 
 class ClassOrEnumDeclarationMatch {
-  /// Shorthand constructor
   ClassOrEnumDeclarationMatch({
     required this.node,
     required this.filePath,

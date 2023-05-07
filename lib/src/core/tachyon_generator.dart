@@ -44,7 +44,6 @@ class Tachyon {
   late final DeclarationFinder declarationFinder = DeclarationFinder(
     projectDirectoryPath: directory.path,
     parsedFilesRegistry: _filesRegistry,
-    dependencyGraph: _dependencyGraph,
   );
 
   final List<OnCodeGenerationHook> _codeGenerationHooks = <OnCodeGenerationHook>[];
@@ -116,55 +115,6 @@ class Tachyon {
       });
     }).cast<io.File>();
 
-    Future<void> index({
-      required String targetFilePath,
-      required CompilationUnit compilationUnit,
-    }) async {
-      for (final Directive directive in compilationUnit.directives) {
-        String? directiveUri;
-        if (directive is NamespaceDirective) {
-          directiveUri = directive.uri.stringValue;
-        }
-
-        if (directiveUri == null) {
-          continue;
-        }
-
-        final String? dartFilePath = await findDartFileFromUri(
-          projectDirectoryPath: directory.path,
-          currentDirectoryPath: io.File(targetFilePath).parent.absolute.path,
-          uri: directiveUri,
-        );
-
-        if (dartFilePath == null || !io.File(dartFilePath).existsSync()) {
-          continue;
-        }
-
-        if (_filesRegistry.containsKey(dartFilePath)) {
-          _dependencyGraph.add(
-            targetFilePath,
-            dartFilePath,
-          );
-          continue;
-        }
-
-        if (path.isWithin(directory.path, dartFilePath)) {
-          _dependencyGraph.add(targetFilePath, dartFilePath);
-          _filesRegistry[dartFilePath] = ParsedFileData(
-            absolutePath: dartFilePath,
-            compilationUnit:
-                dartFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-            lastModifiedAt: io.File(dartFilePath).lastModifiedSync(),
-          );
-
-          await index(
-            targetFilePath: dartFilePath,
-            compilationUnit: _filesRegistry[dartFilePath]!.compilationUnit,
-          );
-        }
-      }
-    }
-
     for (final io.File file in dartFiles) {
       final String targetFilePath = file.absolute.path;
 
@@ -178,7 +128,7 @@ class Tachyon {
         lastModifiedAt: file.lastModifiedSync(),
       );
 
-      await index(
+      await _indexFile(
         targetFilePath: targetFilePath,
         compilationUnit: _filesRegistry[targetFilePath]!.compilationUnit,
       );
@@ -224,6 +174,76 @@ class Tachyon {
     return TachyonConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
   }
 
+  //   final File dartFile = File(dartFilePath);
+  // if (!await dartFile.exists()) {
+  //   continue;
+  // }
+
+  // final DateTime lastModifiedAt = await dartFile.lastModified();
+
+  // // TODO(pantelis): This should be on the main code generator
+  // if (!_dependencyGraph.hasDependency(targetFilePath, dartFilePath)) {
+  //   _dependencyGraph.add(targetFilePath, dartFilePath);
+  // }
+
+  // // TODO(pantelis): This should be on the main code generator
+  // if (!_parsedFilesRegistry.containsKey(dartFilePath) ||
+  //     lastModifiedAt.isAfter(_parsedFilesRegistry[dartFilePath]!.lastModifiedAt)) {
+  //   _parsedFilesRegistry[dartFilePath] = ParsedFileData(
+  //     absolutePath: dartFilePath,
+  //     compilationUnit: dartFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+  //     lastModifiedAt: lastModifiedAt,
+  //   );
+  // }
+
+  Future<void> _indexFile({
+    required String targetFilePath,
+    required CompilationUnit compilationUnit,
+  }) async {
+    for (final Directive directive in compilationUnit.directives) {
+      String? directiveUri;
+      if (directive is NamespaceDirective) {
+        directiveUri = directive.uri.stringValue;
+      }
+
+      if (directiveUri == null) {
+        continue;
+      }
+
+      final String? dartFilePath = await findDartFileFromDirectiveUri(
+        projectDirectoryPath: directory.path,
+        currentDirectoryPath: io.File(targetFilePath).parent.absolute.path,
+        uri: directiveUri,
+      );
+
+      if (dartFilePath == null || !io.File(dartFilePath).existsSync()) {
+        continue;
+      }
+
+      if (_filesRegistry.containsKey(dartFilePath)) {
+        _dependencyGraph.add(
+          targetFilePath,
+          dartFilePath,
+        );
+        continue;
+      }
+
+      if (path.isWithin(directory.path, dartFilePath)) {
+        _dependencyGraph.add(targetFilePath, dartFilePath);
+        _filesRegistry[dartFilePath] = ParsedFileData(
+          absolutePath: dartFilePath,
+          compilationUnit: dartFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+          lastModifiedAt: io.File(dartFilePath).lastModifiedSync(),
+        );
+
+        await _indexFile(
+          targetFilePath: dartFilePath,
+          compilationUnit: _filesRegistry[dartFilePath]!.compilationUnit,
+        );
+      }
+    }
+  }
+
   void _onWatchEvent(WatchEvent event) async {
     final String targetFilePath = path.normalize(event.path);
     Completer<void>? completer;
@@ -245,6 +265,19 @@ class Tachyon {
         } catch (_) {}
 
         return;
+      }
+
+      if (!_filesRegistry.containsKey(targetFilePath)) {
+        _filesRegistry[targetFilePath] = ParsedFileData(
+          absolutePath: targetFilePath,
+          compilationUnit:
+              targetFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+          lastModifiedAt: io.File(targetFilePath).lastModifiedSync(),
+        );
+        await _indexFile(
+          targetFilePath: targetFilePath,
+          compilationUnit: _filesRegistry[targetFilePath]!.compilationUnit,
+        );
       }
 
       await _generateCode(targetFilePath: targetFilePath, outputFilePath: outputFilePath);
@@ -328,7 +361,7 @@ class Tachyon {
     }
 
     if (!skipDependencies) {
-      await _rebuildDependants(targetFilePath: targetFilePath, indent: indent);
+      await _rebuildDependents(targetFilePath: targetFilePath, indent: indent);
     }
 
     if (reportTime) {
@@ -338,16 +371,16 @@ class Tachyon {
     }
   }
 
-  Future<void> _rebuildDependants({
+  Future<void> _rebuildDependents({
     required final String targetFilePath,
     required final String indent,
   }) async {
-    final List<String> dependants = _dependencyGraph.getDependants(targetFilePath);
+    final List<String> dependants = _dependencyGraph.getDependents(targetFilePath);
     if (dependants.isEmpty) {
       return;
     }
 
-    logger.debug('  Rebuilding ${dependants.length} depandants..');
+    logger.debug('  Rebuilding ${dependants.length} depandents..');
     await Future.wait(<Future<void>>[
       for (final String dependency in dependants)
         _generateCode(
