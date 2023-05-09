@@ -174,28 +174,6 @@ class Tachyon {
     return TachyonConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
   }
 
-  //   final File dartFile = File(dartFilePath);
-  // if (!await dartFile.exists()) {
-  //   continue;
-  // }
-
-  // final DateTime lastModifiedAt = await dartFile.lastModified();
-
-  // // TODO(pantelis): This should be on the main code generator
-  // if (!_dependencyGraph.hasDependency(targetFilePath, dartFilePath)) {
-  //   _dependencyGraph.add(targetFilePath, dartFilePath);
-  // }
-
-  // // TODO(pantelis): This should be on the main code generator
-  // if (!_parsedFilesRegistry.containsKey(dartFilePath) ||
-  //     lastModifiedAt.isAfter(_parsedFilesRegistry[dartFilePath]!.lastModifiedAt)) {
-  //   _parsedFilesRegistry[dartFilePath] = ParsedFileData(
-  //     absolutePath: dartFilePath,
-  //     compilationUnit: dartFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-  //     lastModifiedAt: lastModifiedAt,
-  //   );
-  // }
-
   Future<void> _indexFile({
     required String targetFilePath,
     required CompilationUnit compilationUnit,
