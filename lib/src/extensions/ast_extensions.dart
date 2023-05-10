@@ -25,6 +25,13 @@ extension ClassDeclarationX on ClassDeclaration {
           return member is MethodDeclaration && member.name.lexeme == methodName;
         });
   }
+
+  List<MethodDeclaration> get methods {
+    return <MethodDeclaration>[
+      for (final ClassMember declaration in members)
+        if (declaration is MethodDeclaration) declaration
+    ];
+  }
 }
 
 extension EnumDeclarationX on EnumDeclaration {
@@ -42,5 +49,14 @@ extension EnumDeclarationX on EnumDeclaration {
         members.firstWhereOrNull((ClassMember member) {
           return member is MethodDeclaration && member.name.lexeme == methodName;
         });
+  }
+}
+
+extension CompilationUnitExtension on CompilationUnit {
+  List<ClassDeclaration> get classDeclarations {
+    return <ClassDeclaration>[
+      for (final CompilationUnitMember declaration in declarations)
+        if (declaration is ClassDeclaration) declaration
+    ];
   }
 }
