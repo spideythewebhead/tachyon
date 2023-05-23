@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:io' as io;
 
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dart_style/dart_style.dart';
+import 'package:file/file.dart';
+import 'package:file/local.dart';
 import 'package:glob/glob.dart';
 import 'package:path/path.dart' as path;
 import 'package:rxdart/rxdart.dart';
@@ -29,13 +30,16 @@ final RegExp _dartGeneratedFileNameMatcher = RegExp(r'.gen.dart$');
 class Tachyon {
   Tachyon({
     required this.directory,
-    Logger? logger,
+    final FileSystem? fileSystem,
+    final Logger? logger,
   })  : _watcher = DirectoryWatcher(directory.path),
+        _fileSystem = fileSystem ?? const LocalFileSystem(),
         logger = logger ?? ConsoleLogger();
 
-  final io.Directory directory;
+  final Directory directory;
   final Logger logger;
   final Watcher _watcher;
+  final FileSystem _fileSystem;
 
   final Map<String, Completer<void>?> _activeWrites = <String, Completer<void>?>{};
   final DependencyGraph _dependencyGraph = DependencyGraph();
@@ -44,6 +48,7 @@ class Tachyon {
   late final DeclarationFinder declarationFinder = DeclarationFinder(
     projectDirectoryPath: directory.path,
     parsedFilesRegistry: _filesRegistry,
+    fileSystem: _fileSystem,
   );
 
   final List<OnCodeGenerationHook> _codeGenerationHooks = <OnCodeGenerationHook>[];
@@ -101,10 +106,10 @@ class Tachyon {
     final Stopwatch stopwatch = Stopwatch()..start();
     final TachyonConfig pluginConfig = getConfig();
 
-    final Iterable<io.File> dartFiles = directory
+    final Iterable<File> dartFiles = directory
         .listSync(recursive: true) //
-        .where((io.FileSystemEntity entity) {
-      if (entity is! io.File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
+        .where((FileSystemEntity entity) {
+      if (entity is! File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
         return false;
       }
 
@@ -113,9 +118,9 @@ class Tachyon {
           path.relative(entity.absolute.path, from: directory.absolute.path),
         );
       });
-    }).cast<io.File>();
+    }).cast<File>();
 
-    for (final io.File file in dartFiles) {
+    for (final File file in dartFiles) {
       final String targetFilePath = file.absolute.path;
 
       if (_filesRegistry.containsKey(targetFilePath)) {
@@ -168,9 +173,9 @@ class Tachyon {
   }
 
   TachyonConfig getConfig() {
-    final String yamlContent = io.File(
-      path.join(directory.path, 'tachyon_config.yaml'),
-    ).readAsStringSync();
+    final String yamlContent = _fileSystem
+        .file(path.join(directory.path, 'tachyon_config.yaml')) //
+        .readAsStringSync();
     return TachyonConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
   }
 
@@ -190,11 +195,12 @@ class Tachyon {
 
       final String? dartFilePath = await findDartFileFromDirectiveUri(
         projectDirectoryPath: directory.path,
-        currentDirectoryPath: io.File(targetFilePath).parent.absolute.path,
+        currentDirectoryPath: _fileSystem.file(targetFilePath).parent.absolute.path,
         uri: directiveUri,
+        fileSystem: _fileSystem,
       );
 
-      if (dartFilePath == null || !io.File(dartFilePath).existsSync()) {
+      if (dartFilePath == null || !_fileSystem.file(dartFilePath).existsSync()) {
         continue;
       }
 
@@ -211,7 +217,7 @@ class Tachyon {
         _filesRegistry[dartFilePath] = ParsedFileData(
           absolutePath: dartFilePath,
           compilationUnit: dartFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-          lastModifiedAt: io.File(dartFilePath).lastModifiedSync(),
+          lastModifiedAt: _fileSystem.file(dartFilePath).lastModifiedSync(),
         );
 
         await _indexFile(
@@ -239,7 +245,7 @@ class Tachyon {
 
       if (event.type == ChangeType.REMOVE) {
         try {
-          await io.File(outputFilePath).delete();
+          await _fileSystem.file(outputFilePath).delete();
         } catch (_) {}
 
         return;
@@ -250,7 +256,7 @@ class Tachyon {
           absolutePath: targetFilePath,
           compilationUnit:
               targetFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-          lastModifiedAt: io.File(targetFilePath).lastModifiedSync(),
+          lastModifiedAt: _fileSystem.file(targetFilePath).lastModifiedSync(),
         );
         await _indexFile(
           targetFilePath: targetFilePath,
@@ -296,7 +302,7 @@ class Tachyon {
       _filesRegistry[targetFilePath] = ParsedFileData(
         absolutePath: targetFilePath,
         compilationUnit: targetFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-        lastModifiedAt: await io.File(targetFilePath).lastModified(),
+        lastModifiedAt: await _fileSystem.file(targetFilePath).lastModified(),
       );
     }
 
@@ -324,13 +330,13 @@ class Tachyon {
     final String content = codeWriter.content.trimRight();
     if (content.length == header.length && content == header) {
       try {
-        await io.File(outputFilePath).delete();
+        await _fileSystem.file(outputFilePath).delete();
       } catch (_) {}
     } else {
       try {
-        await io.File(outputFilePath).writeAsString(DartFormatter(
-          pageWidth: pluginConfig.generatedFileLineLength,
-        ).format(content));
+        await _fileSystem.file(outputFilePath).writeAsString(DartFormatter(
+              pageWidth: pluginConfig.generatedFileLineLength,
+            ).format(content));
       } on FormatterException catch (e) {
         logger
           ..error('Invalid code generation for $relativeFilePath')
@@ -373,17 +379,16 @@ class Tachyon {
   }
 
   Future<void> _deleteGeneratedFiles() async {
-    final Iterable<io.File> generatedFiles = directory
+    final Iterable<File> generatedFiles = directory
         .listSync(recursive: true) //
-        .where((io.FileSystemEntity entity) {
-      return entity is io.File &&
-          _dartGeneratedFileNameMatcher.hasMatch(path.basename(entity.path));
-    }).cast<io.File>();
+        .where((FileSystemEntity entity) {
+      return entity is File && _dartGeneratedFileNameMatcher.hasMatch(path.basename(entity.path));
+    }).cast<File>();
 
     try {
       await Future.wait<void>(
-        <Future<io.FileSystemEntity>>[
-          for (final io.File file in generatedFiles) file.delete(),
+        <Future<FileSystemEntity>>[
+          for (final File file in generatedFiles) file.delete(),
         ],
         eagerError: false,
       );

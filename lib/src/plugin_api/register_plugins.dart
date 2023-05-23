@@ -6,6 +6,7 @@ import 'dart:isolate';
 import 'package:dart_style/dart_style.dart';
 import 'package:path/path.dart' as path;
 import 'package:tachyon/src/constants.dart';
+import 'package:tachyon/src/core/dart_tool_package_info.dart';
 import 'package:tachyon/src/core/exceptions.dart';
 import 'package:tachyon/src/core/find_package_path_by_import.dart';
 import 'package:tachyon/src/core/tachyon_config.dart';

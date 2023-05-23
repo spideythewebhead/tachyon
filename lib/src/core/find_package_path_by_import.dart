@@ -1,7 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
 
+import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
+import 'package:tachyon/src/constants.dart';
+import 'package:tachyon/src/core/dart_tool_package_info.dart';
 import 'package:tachyon/src/core/exceptions.dart';
 import 'package:tachyon/src/extensions/extensions.dart';
 
@@ -24,6 +26,7 @@ Future<String?> findDartFileFromDirectiveUri({
   required String projectDirectoryPath,
   required String currentDirectoryPath,
   required String uri,
+  required FileSystem fileSystem,
 }) async {
   if (uri.startsWith(_dartPrefix)) {
     return null;
@@ -38,7 +41,7 @@ Future<String?> findDartFileFromDirectiveUri({
   }
 
   final File packageConfigFile =
-      File(path.join(projectDirectoryPath, '.dart_tool', 'package_config.json'));
+      fileSystem.file(path.join(projectDirectoryPath, kDartToolFolderName, 'package_config.json'));
 
   if (!await packageConfigFile.exists()) {
     throw const DartToolFolderNotFoundException();
@@ -68,7 +71,7 @@ Future<String?> findDartFileFromDirectiveUri({
 
   return path.normalize(
     path.join(
-      projectDirectoryPath,
+      path.isRelative(targetPackage.packageUri.path) ? projectDirectoryPath : '',
       packageRootUri,
       targetPackage.packageUri.path,
       // uri format = package:package_name/path/to/file.dart
@@ -79,25 +82,3 @@ Future<String?> findDartFileFromDirectiveUri({
 }
 
 /// Represents an entry for a package on `.dart_tool/package_config.json`
-class PackageInfo {
-  PackageInfo({
-    required this.name,
-    required this.rootUri,
-    required this.packageUri,
-    required this.languageVersion,
-  });
-
-  factory PackageInfo.fromJson(Map<dynamic, dynamic> json) {
-    return PackageInfo(
-      name: json['name'] as String,
-      rootUri: Uri.parse(json['rootUri'] as String),
-      packageUri: Uri.parse(json['packageUri'] as String),
-      languageVersion: json['languageVersion'] as String,
-    );
-  }
-
-  final String name;
-  final Uri rootUri;
-  final Uri packageUri;
-  final String languageVersion;
-}

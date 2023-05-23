@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:file/file.dart';
 import 'package:tachyon/src/cli/commands/arguments.dart';
 import 'package:tachyon/src/cli/commands/base_command.dart';
 import 'package:tachyon/src/cli/commands/generate/generate_arguments.dart';

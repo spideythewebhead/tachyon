@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:analyzer/dart/ast/ast.dart';
+import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
 import 'package:tachyon/src/core/find_package_path_by_import.dart';
 import 'package:tachyon/src/core/parsed_file_data.dart';
@@ -12,11 +11,14 @@ class DeclarationFinder {
   DeclarationFinder({
     required final String projectDirectoryPath,
     required final ParsedFilesRegistry parsedFilesRegistry,
+    required final FileSystem fileSystem,
   })  : _projectDirectoryPath = projectDirectoryPath,
-        _parsedFilesRegistry = parsedFilesRegistry;
+        _parsedFilesRegistry = parsedFilesRegistry,
+        _fileSystem = fileSystem;
 
   final String _projectDirectoryPath;
   final ParsedFilesRegistry _parsedFilesRegistry;
+  final FileSystem _fileSystem;
 
   Future<ClassOrEnumDeclarationMatch?> findClassOrEnumDeclarationByName(
     String name, {
@@ -26,7 +28,7 @@ class DeclarationFinder {
       name,
       compilationUnit: _parsedFilesRegistry[targetFilePath]!.compilationUnit,
       targetFilePath: targetFilePath,
-      currentDirectoryPath: File(targetFilePath).parent.absolute.path,
+      currentDirectoryPath: _fileSystem.file(targetFilePath).parent.absolute.path,
     );
   }
 
@@ -64,6 +66,7 @@ class DeclarationFinder {
         projectDirectoryPath: _projectDirectoryPath,
         currentDirectoryPath: currentDirectoryPath,
         uri: directiveUri,
+        fileSystem: _fileSystem,
       );
 
       // If import file not found or the file is not part of the project skip
@@ -90,7 +93,7 @@ class DeclarationFinder {
       // If the declaration does not exists in the file, check if all the exports of the file
       final ClassOrEnumDeclarationMatch? match = await _recursivelyExploreExports(
         name,
-        currentDirectoryPath: File(parsedFileData.absolutePath).parent.absolute.path,
+        currentDirectoryPath: _fileSystem.file(parsedFileData.absolutePath).parent.absolute.path,
         compilationUnit: parsedFileData.compilationUnit,
       );
       if (match != null) {
@@ -115,6 +118,7 @@ class DeclarationFinder {
         projectDirectoryPath: _projectDirectoryPath,
         currentDirectoryPath: currentDirectoryPath,
         uri: directive.uri.stringValue!,
+        fileSystem: _fileSystem,
       );
 
       if (exportDartFilePath == null) {
@@ -136,7 +140,7 @@ class DeclarationFinder {
       // If the declaration does not exists in the file, check if all the exports of the file
       final ClassOrEnumDeclarationMatch? match = await _recursivelyExploreExports(
         name,
-        currentDirectoryPath: File(exportDartFilePath).parent.absolute.path,
+        currentDirectoryPath: _fileSystem.file(exportDartFilePath).parent.absolute.path,
         compilationUnit: parsedFileData.compilationUnit,
       );
       if (match != null) {
