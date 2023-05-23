@@ -42,7 +42,7 @@ class Tachyon {
   final FileSystem _fileSystem;
 
   final Map<String, Completer<void>?> _activeWrites = <String, Completer<void>?>{};
-  final DependencyGraph _dependencyGraph = DependencyGraph();
+  final PackagesDependencyGraph _dependencyGraph = PackagesDependencyGraph();
   final ParsedFilesRegistry _filesRegistry = ParsedFilesRegistry();
 
   late final DeclarationFinder declarationFinder = DeclarationFinder(

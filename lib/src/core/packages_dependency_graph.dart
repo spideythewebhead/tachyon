@@ -1,5 +1,5 @@
 /// A simple bi-directional dependency graph
-class DependencyGraph {
+class PackagesDependencyGraph {
   // Contains all dependencies for a single node
   final Map<String, Set<String>> _nodeDependencies = <String, Set<String>>{};
   // Contains all depedents for a single node
