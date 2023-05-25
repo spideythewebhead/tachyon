@@ -5,6 +5,7 @@ import 'package:path/path.dart' as path;
 import 'package:tachyon/src/constants.dart';
 import 'package:tachyon/src/core/dart_tool_package_info.dart';
 import 'package:tachyon/src/core/exceptions.dart';
+import 'package:tachyon/src/core/tachyon.dart';
 import 'package:tachyon/src/extensions/extensions.dart';
 
 const String _dartPrefix = 'dart:';
@@ -26,7 +27,6 @@ Future<String?> findDartFileFromDirectiveUri({
   required String projectDirectoryPath,
   required String currentDirectoryPath,
   required String uri,
-  required FileSystem fileSystem,
 }) async {
   if (uri.startsWith(_dartPrefix)) {
     return null;
@@ -40,8 +40,8 @@ Future<String?> findDartFileFromDirectiveUri({
     ));
   }
 
-  final File packageConfigFile =
-      fileSystem.file(path.join(projectDirectoryPath, kDartToolFolderName, 'package_config.json'));
+  final File packageConfigFile = Tachyon.fileSystem
+      .file(path.join(projectDirectoryPath, kDartToolFolderName, 'package_config.json'));
 
   if (!await packageConfigFile.exists()) {
     throw const DartToolFolderNotFoundException();

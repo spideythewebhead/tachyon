@@ -28,4 +28,6 @@ class ParsedFilesRegistry with MapMixin<String, ParsedFileData> {
   void clear() {
     _registry.clear();
   }
+
+  ParsedFileData getParsedFileData(String path) => _registry[path]!;
 }

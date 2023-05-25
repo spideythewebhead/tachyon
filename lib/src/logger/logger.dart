@@ -3,6 +3,8 @@ import 'package:tachyon/src/logger/ansi.dart';
 enum LogSeverity { debug, info, warning, error, fatal }
 
 abstract class Logger {
+  const Logger();
+
   void write([final Object? object]);
   void writeln([final Object? object]);
 

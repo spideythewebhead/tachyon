@@ -5,7 +5,7 @@ import 'package:tachyon/src/cli/commands/arguments.dart';
 import 'package:tachyon/src/cli/commands/base_command.dart';
 import 'package:tachyon/src/cli/commands/generate/generate_arguments.dart';
 import 'package:tachyon/src/cli/commands/mixins.dart';
-import 'package:tachyon/src/core/tachyon_generator.dart';
+import 'package:tachyon/src/core/tachyon.dart';
 import 'package:tachyon/src/plugin_api/register_plugins.dart';
 
 class BuildCommand extends BaseCommand with UtilsCommandMixin {
@@ -13,7 +13,7 @@ class BuildCommand extends BaseCommand with UtilsCommandMixin {
     required super.logger,
     required this.directory,
   }) : _tachyon = Tachyon(
-          directory: directory,
+          projectDir: directory,
           logger: logger,
         ) {
     argParser.addArgumentOptions(GenerateArgumentOption.options);

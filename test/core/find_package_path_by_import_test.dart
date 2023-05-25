@@ -3,17 +3,21 @@ import 'package:path/path.dart' as path;
 import 'package:tachyon/src/constants.dart';
 import 'package:tachyon/src/core/exceptions.dart';
 import 'package:tachyon/src/core/find_package_path_by_import.dart';
+import 'package:tachyon/tachyon.dart';
 import 'package:test/test.dart';
 
 const String _kProjectDir = '/home/user/project';
 
 void main() {
+  setUp(() {
+    Tachyon.fileSystem = MemoryFileSystem();
+  });
+
   test('Returns null if package starts with "dart:"', () async {
     final String? filePath = await findDartFileFromDirectiveUri(
       projectDirectoryPath: '',
       currentDirectoryPath: '',
       uri: 'dart:io',
-      fileSystem: MemoryFileSystem(),
     );
     expect(filePath, isNull);
   });
@@ -23,7 +27,6 @@ void main() {
       projectDirectoryPath: '',
       currentDirectoryPath: path.join(_kProjectDir, 'lib', 'widgets'),
       uri: '../user.dart',
-      fileSystem: MemoryFileSystem(),
     );
     expect(
       filePath,
@@ -32,12 +35,6 @@ void main() {
   });
 
   group('package import', () {
-    late MemoryFileSystem fs;
-
-    setUp(() {
-      fs = MemoryFileSystem.test();
-    });
-
     test('Throws exception if "package_config.json" is not found', () async {
       expect(
         () {
@@ -45,7 +42,6 @@ void main() {
             projectDirectoryPath: _kProjectDir,
             currentDirectoryPath: '',
             uri: 'package:tachyon/tachyon.dart',
-            fileSystem: fs,
           );
         },
         throwsA(isA<DartToolFolderNotFoundException>()),
@@ -53,7 +49,7 @@ void main() {
     });
 
     test('Returns path from import that starts with "package:"', () async {
-      fs.file(path.join(_kProjectDir, kDartToolFolderName, 'package_config.json'))
+      Tachyon.fileSystem.file(path.join(_kProjectDir, kDartToolFolderName, 'package_config.json'))
         ..createSync(recursive: true)
         ..writeAsStringSync('''
             {
@@ -74,7 +70,6 @@ void main() {
           projectDirectoryPath: _kProjectDir,
           currentDirectoryPath: '',
           uri: 'package:tachyon/tachyon.dart',
-          fileSystem: fs,
         ),
         equals(path.join(
           '/home/user/.pub-cache/hosted/pub.dev/tachyon-0.0.1',
@@ -85,7 +80,7 @@ void main() {
     });
 
     test('Returns path from import that starts with "package:" that is relative', () async {
-      fs.file(path.join(_kProjectDir, kDartToolFolderName, 'package_config.json'))
+      Tachyon.fileSystem.file(path.join(_kProjectDir, kDartToolFolderName, 'package_config.json'))
         ..createSync(recursive: true)
         ..writeAsStringSync('''
             {
@@ -106,7 +101,6 @@ void main() {
           projectDirectoryPath: _kProjectDir,
           currentDirectoryPath: '',
           uri: 'package:mypackage/mypackage.dart',
-          fileSystem: fs,
         ),
         equals(path.join(
           _kProjectDir,
@@ -119,7 +113,7 @@ void main() {
     });
 
     test('Throws PackageNotFoundException', () async {
-      fs.file(path.join(_kProjectDir, kDartToolFolderName, 'package_config.json'))
+      Tachyon.fileSystem.file(path.join(_kProjectDir, kDartToolFolderName, 'package_config.json'))
         ..createSync(recursive: true)
         ..writeAsStringSync('''
             {
@@ -135,7 +129,6 @@ void main() {
             projectDirectoryPath: _kProjectDir,
             currentDirectoryPath: '',
             uri: 'package:mypackage/mypackage.dart',
-            fileSystem: fs,
           );
         },
         throwsA(isA<PackageNotFoundException>()),

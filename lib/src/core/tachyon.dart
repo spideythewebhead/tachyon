@@ -6,12 +6,14 @@ import 'package:dart_style/dart_style.dart';
 import 'package:file/file.dart';
 import 'package:file/local.dart';
 import 'package:glob/glob.dart';
+import 'package:meta/meta.dart';
 import 'package:path/path.dart' as path;
 import 'package:rxdart/rxdart.dart';
 import 'package:tachyon/src/constants.dart';
 import 'package:tachyon/src/core/code_writer.dart';
 import 'package:tachyon/src/core/declaration_finder.dart';
 import 'package:tachyon/src/core/find_package_path_by_import.dart';
+import 'package:tachyon/src/core/generate_header_for_part_file.dart';
 import 'package:tachyon/src/core/packages_dependency_graph.dart';
 import 'package:tachyon/src/core/parse_file_extension.dart';
 import 'package:tachyon/src/core/parsed_file_data.dart';
@@ -27,36 +29,67 @@ import 'package:yaml/yaml.dart';
 final RegExp _dartFileNameMatcher = RegExp(r'^[a-zA-Z0-9_]+.dart$');
 final RegExp _dartGeneratedFileNameMatcher = RegExp(r'.gen.dart$');
 
+FileSystem _fs = const LocalFileSystem();
+
 class Tachyon {
+  static FileSystem get fileSystem => _fs;
+
+  /// This override the default file system (io is the default file system).
+  ///
+  /// **This should be used only for testing**.
+  @visibleForTesting
+  static set fileSystem(FileSystem fs) {
+    _fs = fs;
+  }
+
+  @visibleForTesting
+  static void resetFileSystem() => fileSystem = const LocalFileSystem();
+
+  @visibleForTesting
+  static const Duration watchDebounceDuration = Duration(milliseconds: 100);
+
   Tachyon({
-    required this.directory,
-    final FileSystem? fileSystem,
+    required this.projectDir,
     final Logger? logger,
-  })  : _watcher = DirectoryWatcher(directory.path),
-        _fileSystem = fileSystem ?? const LocalFileSystem(),
+  })  : _watcher = DirectoryWatcher(projectDir.path),
         logger = logger ?? ConsoleLogger();
 
-  final Directory directory;
+  final Directory projectDir;
   final Logger logger;
   final Watcher _watcher;
-  final FileSystem _fileSystem;
 
   final Map<String, Completer<void>?> _activeWrites = <String, Completer<void>?>{};
   final PackagesDependencyGraph _dependencyGraph = PackagesDependencyGraph();
-  final ParsedFilesRegistry _filesRegistry = ParsedFilesRegistry();
+  final ParsedFilesRegistry _filesPathsRegistry = ParsedFilesRegistry();
 
   late final DeclarationFinder declarationFinder = DeclarationFinder(
-    projectDirectoryPath: directory.path,
-    parsedFilesRegistry: _filesRegistry,
-    fileSystem: _fileSystem,
+    projectDirectoryPath: projectDir.path,
+    parsedFilesRegistry: _filesPathsRegistry,
   );
 
   final List<OnCodeGenerationHook> _codeGenerationHooks = <OnCodeGenerationHook>[];
   final List<OnDisposeHook> _disposeHooks = <OnDisposeHook>[];
 
-  StreamSubscription<WatchEvent>? _watchSubscription;
+  Completer<void>? _watchModeCompleter;
+  StreamSubscription<WatchEvent>? _projectWatcherSubscription;
 
-  List<String> get registeredFiles => _filesRegistry.keys.toList(growable: false);
+  /// Returns the absolute file paths for parsed (indexed) files.
+  ///
+  /// **This should be used only for testing**.
+  @visibleForTesting
+  List<String> get parsedFilesPaths => _filesPathsRegistry.keys.toList(growable: false);
+
+  @visibleForTesting
+  ParsedFileData getParsedFileDataForPath(String path) => _filesPathsRegistry[path]!;
+
+  /// Returns the dependency graph for parsed (indexed) files.
+  ///
+  /// The [PackagesDependencyGraph] is an immutable copy of the underlaying graph,
+  /// so any changes won't affect the real graph.
+  ///
+  /// **This should be used only for testing**.
+  @visibleForTesting
+  PackagesDependencyGraph get packagesDependencyGraph => _dependencyGraph.getCopy();
 
   void addCodeGenerationHook(OnCodeGenerationHook hook) {
     _codeGenerationHooks.add(hook);
@@ -66,47 +99,53 @@ class Tachyon {
     _disposeHooks.add(hook);
   }
 
-  /// Watches this project for any files changes and rebuilds when necessary
+  /// Watches this project for any files changes and rebuilds the filed and depedants of the file.
   Future<void> watchProject({
     void Function()? onReady,
     bool deleteExistingGeneratedFiles = false,
   }) async {
-    final Completer<void> completer = Completer<void>();
+    final Completer<void> watchModeCompleter = Completer<void>();
     await indexProject();
     await buildProject(
       deleteExistingGeneratedFiles: deleteExistingGeneratedFiles,
     );
-    _watchSubscription = _watcher.events
-        .debounceTime(const Duration(milliseconds: 100))
-        .listen(_onWatchEvent, onDone: () {
-      completer.complete();
+    _projectWatcherSubscription =
+        _watcher.events.debounceTime(watchDebounceDuration).listen(_onWatchEvent, onDone: () {
+      _watchModeCompleter?.complete();
     });
     await _watcher.ready;
     onReady?.call();
-    return completer.future;
+    _watchModeCompleter = watchModeCompleter;
+    return watchModeCompleter.future;
   }
 
+  /// Calls all the dispose hooks and clears any open resources
   Future<void> dispose() async {
     logger.info('~ Disposing resources... Bye!');
     for (final OnDisposeHook disposeHook in _disposeHooks) {
       await disposeHook();
     }
-    await _watchSubscription?.cancel();
+    await _projectWatcherSubscription?.cancel();
+    _watchModeCompleter?.complete();
+    _dependencyGraph.clear();
+    _filesPathsRegistry.clear();
   }
 
-  /// Indexes the project and creates links between source files
+  /// Indexes the project and creates a dependency graph between source files.
+  ///
+  /// Use [forceClear] if you are re-indexing the project.
   Future<void> indexProject({bool forceClear = false}) async {
     logger.info('~ Indexing project..');
 
     if (forceClear) {
-      _filesRegistry.clear();
+      _filesPathsRegistry.clear();
       _dependencyGraph.clear();
     }
 
     final Stopwatch stopwatch = Stopwatch()..start();
     final TachyonConfig pluginConfig = getConfig();
 
-    final Iterable<File> dartFiles = directory
+    final Iterable<File> dartFiles = projectDir
         .listSync(recursive: true) //
         .where((FileSystemEntity entity) {
       if (entity is! File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
@@ -115,7 +154,7 @@ class Tachyon {
 
       return pluginConfig.fileGenerationPaths.any((Glob glob) {
         return glob.matches(
-          path.relative(entity.absolute.path, from: directory.absolute.path),
+          path.relative(entity.absolute.path, from: projectDir.absolute.path),
         );
       });
     }).cast<File>();
@@ -123,29 +162,31 @@ class Tachyon {
     for (final File file in dartFiles) {
       final String targetFilePath = file.absolute.path;
 
-      if (_filesRegistry.containsKey(targetFilePath)) {
+      if (_filesPathsRegistry.containsKey(targetFilePath)) {
         continue;
       }
 
-      _filesRegistry[targetFilePath] = ParsedFileData(
+      _filesPathsRegistry[targetFilePath] = ParsedFileData(
         absolutePath: targetFilePath,
-        compilationUnit: targetFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+        compilationUnit:
+            targetFilePath.dartParse(featureSet: FeatureSet.latestLanguageVersion()).unit,
         lastModifiedAt: file.lastModifiedSync(),
       );
 
       await _indexFile(
         targetFilePath: targetFilePath,
-        compilationUnit: _filesRegistry[targetFilePath]!.compilationUnit,
+        compilationUnit: _filesPathsRegistry[targetFilePath]!.compilationUnit,
       );
     }
 
     stopwatch.stop();
-    logger.info('~ Indexed ${_filesRegistry.length} files in ${stopwatch.elapsedMilliseconds}ms');
+    logger.info(
+        '~ Indexed ${_filesPathsRegistry.length} files in ${stopwatch.elapsedMilliseconds}ms');
   }
 
-  /// Builds the project
+  /// Builds the project.
   ///
-  /// **Project must be indexed before it can correctly build**
+  /// **Project must be indexed before it can correctly build**.
   Future<void> buildProject({
     bool deleteExistingGeneratedFiles = false,
   }) async {
@@ -159,12 +200,13 @@ class Tachyon {
 
     logger.info('~ Building project..');
 
-    for (final MapEntry<String, ParsedFileData> entry in _filesRegistry.entries) {
+    for (final MapEntry<String, ParsedFileData> entry in _filesPathsRegistry.entries) {
       final String targetFilePath = entry.key;
       await _generateCode(
         targetFilePath: targetFilePath,
         outputFilePath: targetFilePath.replaceFirst('.dart', '.gen.dart'),
         compilationUnit: entry.value.compilationUnit,
+        skipDependencies: true,
       );
     }
 
@@ -172,20 +214,26 @@ class Tachyon {
     logger.info('~ Completed build in ${stopwatch.elapsed.inMilliseconds}ms..');
   }
 
+  /// Gets an instance of [TachyonConfig] from `project_root_dir/tachyon.yaml`.
+  ///
+  /// If the file does not exists this method **throws**.
   TachyonConfig getConfig() {
-    final String yamlContent = _fileSystem
-        .file(path.join(directory.path, 'tachyon_config.yaml')) //
+    final String yamlContent = Tachyon.fileSystem
+        .file(path.join(projectDir.path, kTachyonConfigFileName)) //
         .readAsStringSync();
     return TachyonConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
   }
 
+  /// Goes through all the (import) dependencies of this [targetFilePath].
+  /// and updates [_dependencyGraph] to include dependency links between
+  /// the project's files.
   Future<void> _indexFile({
     required String targetFilePath,
     required CompilationUnit compilationUnit,
   }) async {
     for (final Directive directive in compilationUnit.directives) {
       String? directiveUri;
-      if (directive is NamespaceDirective) {
+      if (directive is ImportDirective) {
         directiveUri = directive.uri.stringValue;
       }
 
@@ -193,44 +241,72 @@ class Tachyon {
         continue;
       }
 
-      final String? dartFilePath = await findDartFileFromDirectiveUri(
-        projectDirectoryPath: directory.path,
-        currentDirectoryPath: _fileSystem.file(targetFilePath).parent.absolute.path,
+      final String? importFilePath = await findDartFileFromDirectiveUri(
+        projectDirectoryPath: projectDir.path,
+        currentDirectoryPath: Tachyon.fileSystem.file(targetFilePath).parent.absolute.path,
         uri: directiveUri,
-        fileSystem: _fileSystem,
       );
-
-      if (dartFilePath == null || !_fileSystem.file(dartFilePath).existsSync()) {
+      if (importFilePath == null || !Tachyon.fileSystem.file(importFilePath).existsSync()) {
         continue;
       }
 
-      if (_filesRegistry.containsKey(dartFilePath)) {
-        _dependencyGraph.add(
-          targetFilePath,
-          dartFilePath,
-        );
+      // If the file is already parsed then it already exists on the project
+      if (_filesPathsRegistry.containsKey(importFilePath)) {
+        _dependencyGraph.add(targetFilePath, importFilePath);
         continue;
       }
 
-      if (path.isWithin(directory.path, dartFilePath)) {
-        _dependencyGraph.add(targetFilePath, dartFilePath);
-        _filesRegistry[dartFilePath] = ParsedFileData(
-          absolutePath: dartFilePath,
-          compilationUnit: dartFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-          lastModifiedAt: _fileSystem.file(dartFilePath).lastModifiedSync(),
+      // Only project files are added on the dependency graph
+      if (path.isWithin(projectDir.path, importFilePath)) {
+        _dependencyGraph.add(targetFilePath, importFilePath);
+        _filesPathsRegistry[importFilePath] = ParsedFileData(
+          absolutePath: importFilePath,
+          compilationUnit:
+              importFilePath.dartParse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+          lastModifiedAt: Tachyon.fileSystem.file(importFilePath).lastModifiedSync(),
         );
 
         await _indexFile(
-          targetFilePath: dartFilePath,
-          compilationUnit: _filesRegistry[dartFilePath]!.compilationUnit,
+          targetFilePath: importFilePath,
+          compilationUnit: _filesPathsRegistry[importFilePath]!.compilationUnit,
         );
+      }
+    }
+  }
+
+  Future<void> _updateDependencyGraphForFile({
+    required String targetFilePath,
+    required CompilationUnit compilationUnit,
+  }) async {
+    for (final Directive directive in compilationUnit.directives) {
+      String? directiveUri;
+      if (directive is ImportDirective) {
+        directiveUri = directive.uri.stringValue;
+      }
+
+      if (directiveUri == null) {
+        continue;
+      }
+
+      final String? importFilePath = await findDartFileFromDirectiveUri(
+        projectDirectoryPath: projectDir.path,
+        currentDirectoryPath: Tachyon.fileSystem.file(targetFilePath).parent.absolute.path,
+        uri: directiveUri,
+      );
+      if (importFilePath == null || !Tachyon.fileSystem.file(importFilePath).existsSync()) {
+        continue;
+      }
+
+      // Only project files are added on the dependency graph
+      if (path.isWithin(projectDir.path, importFilePath)) {
+        _dependencyGraph.add(targetFilePath, importFilePath);
       }
     }
   }
 
   void _onWatchEvent(WatchEvent event) async {
     final String targetFilePath = path.normalize(event.path);
-    Completer<void>? completer;
+    Completer<void>? buildCompleter;
 
     try {
       if (!_dartFileNameMatcher.hasMatch(path.basename(targetFilePath))) {
@@ -240,47 +316,49 @@ class Tachyon {
       final String outputFilePath = targetFilePath.replaceFirst('.dart', '.gen.dart');
       await _activeWrites[outputFilePath]?.future;
 
-      completer = Completer<void>();
-      _activeWrites[outputFilePath] = completer;
+      buildCompleter = Completer<void>();
+      _activeWrites[outputFilePath] = buildCompleter;
 
       if (event.type == ChangeType.REMOVE) {
         try {
-          await _fileSystem.file(outputFilePath).delete();
+          await Tachyon.fileSystem.file(outputFilePath).delete();
         } catch (_) {}
-
         return;
       }
 
-      if (!_filesRegistry.containsKey(targetFilePath)) {
-        _filesRegistry[targetFilePath] = ParsedFileData(
-          absolutePath: targetFilePath,
-          compilationUnit:
-              targetFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-          lastModifiedAt: _fileSystem.file(targetFilePath).lastModifiedSync(),
-        );
-        await _indexFile(
-          targetFilePath: targetFilePath,
-          compilationUnit: _filesRegistry[targetFilePath]!.compilationUnit,
-        );
-      }
+      _filesPathsRegistry[targetFilePath] = ParsedFileData(
+        absolutePath: targetFilePath,
+        compilationUnit:
+            targetFilePath.dartParse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+        lastModifiedAt: Tachyon.fileSystem.file(targetFilePath).lastModifiedSync(),
+      );
 
-      await _generateCode(targetFilePath: targetFilePath, outputFilePath: outputFilePath);
+      await _updateDependencyGraphForFile(
+        targetFilePath: targetFilePath,
+        compilationUnit: _filesPathsRegistry.getParsedFileData(targetFilePath).compilationUnit,
+      );
+
+      await _generateCode(
+        targetFilePath: targetFilePath,
+        outputFilePath: outputFilePath,
+        compilationUnit: _filesPathsRegistry.getParsedFileData(targetFilePath).compilationUnit,
+      );
     } catch (error, stackTrace) {
       logger.exception(error, stackTrace);
     } finally {
-      completer?.safeComplete();
+      buildCompleter?.safeComplete();
     }
   }
 
   Future<void> _generateCode({
-    required String targetFilePath,
-    required String outputFilePath,
-    bool skipDependencies = false,
-    CompilationUnit? compilationUnit,
-    String indent = '',
-    bool reportTime = true,
+    required final String targetFilePath,
+    required final String outputFilePath,
+    required final CompilationUnit compilationUnit,
+    final bool skipDependencies = false,
+    final String indent = '',
+    final bool reportTime = true,
   }) async {
-    final String relativeFilePath = path.relative(targetFilePath, from: directory.path);
+    final String relativeFilePath = path.relative(targetFilePath, from: projectDir.path);
     final TachyonConfig pluginConfig = getConfig();
 
     if (!pluginConfig.fileGenerationPaths.any((Glob glob) => glob.matches(relativeFilePath))) {
@@ -296,27 +374,10 @@ class Tachyon {
       stopwatch = null;
     }
 
-    CodeWriter codeWriter = CodeWriter.stringBuffer();
-
-    if (compilationUnit == null) {
-      _filesRegistry[targetFilePath] = ParsedFileData(
-        absolutePath: targetFilePath,
-        compilationUnit: targetFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit,
-        lastModifiedAt: await _fileSystem.file(targetFilePath).lastModified(),
-      );
-    }
-
-    compilationUnit ??= _filesRegistry[targetFilePath]!.compilationUnit;
-
     logger.debug('$indent~ Starting build for $relativeFilePath');
 
-    final String header = (StringBuffer()
-          ..writeln('// AUTO GENERATED - DO NOT MODIFY')
-          ..writeln('// ignore_for_file: type=lint')
-          ..writeln()
-          ..writeln("part of '${path.basename(targetFilePath)}';")
-          ..writeln())
-        .toString();
+    final CodeWriter codeWriter = CodeWriter.stringBuffer();
+    final String header = generateHeaderForPartFile(targetFilePath);
 
     codeWriter.write(header);
 
@@ -324,17 +385,19 @@ class Tachyon {
       for (final OnCodeGenerationHook hook in _codeGenerationHooks)
         hook(compilationUnit, targetFilePath),
     ];
-    codeWriter.writeln(await Future.wait(futures)
-        .then((List<String?> results) => results.whereType<String>().join(kNewLine)));
+    codeWriter.write(
+      await Future.wait(futures)
+          .then((List<String?> results) => results.whereType<String>().join(kNewLine)),
+    );
 
     final String content = codeWriter.content.trimRight();
-    if (content.length == header.length && content == header) {
+    if (header.trimRight().length == content.length) {
       try {
-        await _fileSystem.file(outputFilePath).delete();
+        await Tachyon.fileSystem.file(outputFilePath).delete();
       } catch (_) {}
     } else {
       try {
-        await _fileSystem.file(outputFilePath).writeAsString(DartFormatter(
+        await Tachyon.fileSystem.file(outputFilePath).writeAsString(DartFormatter(
               pageWidth: pluginConfig.generatedFileLineLength,
             ).format(content));
       } on FormatterException catch (e) {
@@ -370,7 +433,7 @@ class Tachyon {
         _generateCode(
           targetFilePath: dependency,
           outputFilePath: dependency.replaceFirst('.dart', '.gen.dart'),
-          compilationUnit: _filesRegistry[dependency]?.compilationUnit,
+          compilationUnit: _filesPathsRegistry.getParsedFileData(dependency).compilationUnit,
           indent: '  $indent',
           skipDependencies: true,
           reportTime: false,
@@ -379,7 +442,7 @@ class Tachyon {
   }
 
   Future<void> _deleteGeneratedFiles() async {
-    final Iterable<File> generatedFiles = directory
+    final Iterable<File> generatedFiles = projectDir
         .listSync(recursive: true) //
         .where((FileSystemEntity entity) {
       return entity is File && _dartGeneratedFileNameMatcher.hasMatch(path.basename(entity.path));
