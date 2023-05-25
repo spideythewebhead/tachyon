@@ -1,12 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 
-import 'package:analyzer/dart/analysis/features.dart';
-import 'package:analyzer/dart/ast/ast.dart';
-import 'package:tachyon/src/core/declaration_finder.dart';
-import 'package:tachyon/src/core/parse_file_extension.dart';
-import 'package:tachyon/src/plugin_api/api/api_message.dart';
-import 'package:tachyon/src/plugin_api/simple_id_generator.dart';
+import 'package:tachyon/tachyon.dart';
 
 export 'package:analyzer/dart/analysis/features.dart';
 export 'package:analyzer/dart/analysis/utilities.dart';
@@ -48,8 +44,10 @@ class TachyonDeclarationFinder {
       if (absoluteFilePath == null) {
         return null;
       }
-      final CompilationUnit unit =
-          absoluteFilePath.parse(featureSet: FeatureSet.latestLanguageVersion()).unit;
+      final CompilationUnit unit = parseString(
+        content: await File(absoluteFilePath).readAsString(),
+        featureSet: FeatureSet.latestLanguageVersion(),
+      ).unit;
       for (final CompilationUnitMember declaration in unit.declarations) {
         if (declaration is NamedCompilationUnitMember && declaration.name.lexeme == name) {
           return ClassOrEnumDeclarationMatch(

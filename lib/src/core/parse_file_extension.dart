@@ -2,13 +2,15 @@ import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/error/error.dart';
+import 'package:tachyon/src/core/tachyon.dart';
 import 'package:tachyon/src/logger/ansi.dart';
 
 extension ParseFileX on String {
-  ParseStringResult parse({
+  ParseStringResult dartParse({
     required FeatureSet featureSet,
   }) {
-    final ParseStringResult result = parseFile(
+    final ParseStringResult result = parseString(
+      content: Tachyon.fileSystem.file(this).readAsStringSync(),
       path: this,
       featureSet: featureSet,
       throwIfDiagnostics: false,

@@ -204,6 +204,7 @@ Future<void> registerPlugins({
 
   final StreamSubscription<dynamic> apiMessageSubscription =
       apiMessageStream.listen(onApiMessageReceived);
+
   final Isolate isolate = await Isolate.spawnUri(
     dartProgram.uri,
     const <String>[],

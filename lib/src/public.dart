@@ -1,7 +1,8 @@
 export 'core/code_writer.dart';
 export 'core/declaration_finder.dart' show ClassOrEnumDeclarationMatch;
+export 'core/generate_header_for_part_file.dart';
 export 'core/public.dart';
-export 'core/tachyon_generator.dart';
+export 'core/tachyon.dart';
 export 'extensions/extensions.dart';
 export 'logger/public.dart';
 export 'plugin_api/public.dart';
