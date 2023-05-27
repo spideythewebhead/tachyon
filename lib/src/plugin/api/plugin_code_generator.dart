@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:tachyon/src/logger/logger.dart';
-import 'package:tachyon/src/plugin_api/api/declaration_finder.dart';
-import 'package:tachyon/src/plugin_api/api/file_change_build_info.dart';
+import 'package:tachyon/src/plugin/api/declaration_finder.dart';
+import 'package:tachyon/src/plugin/api/file_change_build_info.dart';
 
 /// Interface for a code generator created by a plugin
 ///

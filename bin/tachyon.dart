@@ -17,7 +17,7 @@ Future<void> main(List<String> args) async {
         ..writeln('No ${kPubspecYamlFileName.cyan().bold()} found.')
         ..writeln(
             'Run this command on the root folder of your project. Are you sure this is a dart/flutter project?');
-    } else if (e is DartToolFolderNotFoundException) {
+    } else if (e is DartToolPackageConfigNotFoundException) {
       stdout.writeln('Run "${Platform.executable} pub get" before running this tool.');
     } else if (e is PackageNotFoundException) {
       final String executableBasename = path.basename(Platform.executable).toLowerCase();

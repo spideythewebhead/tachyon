@@ -9,7 +9,6 @@ final Map<String, _ApiMessageFromJson> _fromJsonMapper = <String, _ApiMessageFro
   FindClassOrEnumDeclarationApiMessage._kName: FindClassOrEnumDeclarationApiMessage.fromJson,
   FindClassOrEnumDeclarationResultApiMessage._kName:
       FindClassOrEnumDeclarationResultApiMessage.fromJson,
-  LogApiMessage._kName: LogApiMessage.fromJson,
 };
 
 /// Base class for messages between isolates used in plugins
@@ -19,7 +18,7 @@ abstract class ApiMessage {
   const ApiMessage();
 
   factory ApiMessage.fromJson(Map<dynamic, dynamic> json) {
-    return _fromJsonMapper[json['_message']]!(json);
+    return _fromJsonMapper[json['_message']]?.call(json) ?? const UnknownApiMessage();
   }
 
   String get id;
@@ -74,6 +73,7 @@ class FileModifiedApiMessage implements ApiMessage {
     required this.id,
     required this.projectDirectoryPath,
     required this.absoluteFilePath,
+    required this.fileContent,
   });
 
   factory FileModifiedApiMessage.fromJson(Map<dynamic, dynamic> json) {
@@ -81,6 +81,7 @@ class FileModifiedApiMessage implements ApiMessage {
       id: json['id'] as String,
       projectDirectoryPath: json['projectDirectoryPath'] as String,
       absoluteFilePath: json['absoluteFilePath'] as String,
+      fileContent: json['fileContent'] as String,
     );
   }
 
@@ -88,6 +89,7 @@ class FileModifiedApiMessage implements ApiMessage {
   final String id;
   final String projectDirectoryPath;
   final String absoluteFilePath;
+  final String fileContent;
 
   @override
   Map<String, dynamic> toJson() {
@@ -96,6 +98,7 @@ class FileModifiedApiMessage implements ApiMessage {
       'id': id,
       'projectDirectoryPath': projectDirectoryPath,
       'absoluteFilePath': absoluteFilePath,
+      'fileContent': fileContent,
     };
   }
 }
@@ -172,18 +175,21 @@ class FindClassOrEnumDeclarationResultApiMessage implements ApiMessage {
   FindClassOrEnumDeclarationResultApiMessage({
     required this.id,
     this.matchFilePath,
+    this.unitMemberContent,
   });
 
   factory FindClassOrEnumDeclarationResultApiMessage.fromJson(Map<dynamic, dynamic> json) {
     return FindClassOrEnumDeclarationResultApiMessage(
       id: json['id'] as String,
       matchFilePath: json['matchFilePath'] as String?,
+      unitMemberContent: json['unitMemberContent'] as String?,
     );
   }
 
   @override
   final String id;
   final String? matchFilePath;
+  final String? unitMemberContent;
 
   @override
   Map<String, dynamic> toJson() {
@@ -191,35 +197,7 @@ class FindClassOrEnumDeclarationResultApiMessage implements ApiMessage {
       '_message': _kName,
       'id': id,
       'matchFilePath': matchFilePath,
-    };
-  }
-}
-
-class LogApiMessage implements ApiMessage {
-  static const String _kName = 'log';
-
-  LogApiMessage({
-    required this.id,
-    required this.log,
-  });
-
-  factory LogApiMessage.fromJson(Map<dynamic, dynamic> json) {
-    return LogApiMessage(
-      id: json['id'] as String,
-      log: json['log'] as String,
-    );
-  }
-
-  @override
-  final String id;
-  final String log;
-
-  @override
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      '_message': _kName,
-      'id': id,
-      'log': log,
+      'unitMemberContent': unitMemberContent,
     };
   }
 }

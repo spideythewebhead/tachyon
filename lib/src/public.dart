@@ -5,6 +5,6 @@ export 'core/public.dart';
 export 'core/tachyon.dart';
 export 'extensions/extensions.dart';
 export 'logger/public.dart';
-export 'plugin_api/public.dart';
+export 'plugin/public.dart';
 export 'typedefs.dart';
 export 'visitors/visitors.dart';

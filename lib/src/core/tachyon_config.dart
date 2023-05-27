@@ -28,4 +28,16 @@ class TachyonConfig {
   final List<Glob> fileGenerationPaths;
   final int generatedFileLineLength;
   final List<String> plugins;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'file_generation_paths': <String>[
+        for (final Glob glob in fileGenerationPaths) glob.pattern,
+      ],
+      'generated_file_line_length': generatedFileLineLength,
+      'plugins': <String>[
+        for (final String plugin in plugins) plugin,
+      ]
+    };
+  }
 }
