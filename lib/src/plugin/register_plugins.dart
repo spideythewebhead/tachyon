@@ -204,6 +204,8 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
           .then((YamlMap value) => ExternalPluginConfig.fromJson(value));
 
       validExternalPluginsConfigs.add(pluginConfig);
+      pluginsRegistrationResults
+          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: true));
     } catch (error, stackTrace) {
       pluginsRegistrationResults
           .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: false));
@@ -268,6 +270,8 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
     mainIsolateReceivePort.sendPort,
     errorsAreFatal: true,
     checked: false,
+    packageConfig:
+        Uri.parse(path.join(tachyon.projectDir.path, kDartToolFolderName, 'package_config.json')),
   );
 
   await pluginsSetupCompleter.future;
@@ -320,7 +324,7 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
 
       if (generatedCodeApiMessage is GeneratedCodeApiMessage &&
           generatedCodeApiMessage.code != null) {
-        buffer.write(generatedCodeApiMessage.code);
+        buffer.writeln(generatedCodeApiMessage.code);
       }
     }
 
