@@ -11,8 +11,8 @@ class RequiresFileGenerationModeException implements TachyonException {
   const RequiresFileGenerationModeException();
 }
 
-class DartToolFolderNotFoundException implements TachyonException {
-  const DartToolFolderNotFoundException();
+class DartToolPackageConfigNotFoundException implements TachyonException {
+  const DartToolPackageConfigNotFoundException();
 }
 
 class PackageNotFoundException implements TachyonException {

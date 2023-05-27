@@ -44,7 +44,7 @@ void main() {
             uri: 'package:tachyon/tachyon.dart',
           );
         },
-        throwsA(isA<DartToolFolderNotFoundException>()),
+        throwsA(isA<DartToolPackageConfigNotFoundException>()),
       );
     });
 

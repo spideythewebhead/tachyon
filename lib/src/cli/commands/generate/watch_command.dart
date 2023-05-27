@@ -7,7 +7,7 @@ import 'package:tachyon/src/cli/commands/base_command.dart';
 import 'package:tachyon/src/cli/commands/generate/generate_arguments.dart';
 import 'package:tachyon/src/cli/commands/mixins.dart';
 import 'package:tachyon/src/core/tachyon.dart';
-import 'package:tachyon/src/plugin_api/register_plugins.dart';
+import 'package:tachyon/src/plugin/register_plugins.dart';
 
 class WatchCommand extends BaseCommand with UtilsCommandMixin {
   WatchCommand({
@@ -41,7 +41,7 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
     }
     ProcessSignal.sigint.watch().listen((_) => _dispose());
 
-    await registerPlugins(tachyon: _tachyon, projectDirectoryPath: directory.path);
+    await registerPlugins(tachyon: _tachyon, projectDirPath: directory.path);
     await _tachyon.watchProject(
       onReady: () => logger.debug('Listening'),
       deleteExistingGeneratedFiles:

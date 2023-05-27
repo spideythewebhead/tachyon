@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:isolate';
 
 import 'package:tachyon/tachyon.dart';
@@ -39,24 +38,27 @@ class TachyonDeclarationFinder {
 
     final ApiMessage message =
         await _stream.firstWhere((ApiMessage message) => message.id == messageId);
+
     if (message is FindClassOrEnumDeclarationResultApiMessage) {
       final String? absoluteFilePath = message.matchFilePath;
-      if (absoluteFilePath == null) {
+      final String? fileContent = message.unitMemberContent;
+      if (absoluteFilePath == null || fileContent == null) {
         return null;
       }
       final CompilationUnit unit = parseString(
-        content: await File(absoluteFilePath).readAsString(),
+        content: fileContent,
+        path: absoluteFilePath,
         featureSet: FeatureSet.latestLanguageVersion(),
       ).unit;
-      for (final CompilationUnitMember declaration in unit.declarations) {
-        if (declaration is NamedCompilationUnitMember && declaration.name.lexeme == name) {
-          return ClassOrEnumDeclarationMatch(
-            node: declaration,
-            filePath: absoluteFilePath,
-          );
-        }
+      final CompilationUnitMember? unitMember = unit.declarations.firstOrNull;
+      if (unitMember is NamedCompilationUnitMember) {
+        return ClassOrEnumDeclarationMatch(
+          node: unitMember,
+          filePath: absoluteFilePath,
+        );
       }
     }
+
     return null;
   }
 }
