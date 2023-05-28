@@ -37,32 +37,36 @@ Isolate.spawn((SendPort tachyonSendPort) {
   final Logger logger = ConsoleLogger();
 
   apiMessageStream.listen((ApiMessage message) async {
-    if (message is FileModifiedApiMessage) {
-      final CompilationUnit unit = parseString(
-        content: message.fileContent,
-        path: message.absoluteFilePath,
-        featureSet: FeatureSet.latestLanguageVersion(),
-      ).unit;
-      final String generatedCode = await generator.generate(
-        FileChangeBuildInfo(
-          projectDirectoryPath: message.projectDirectoryPath,
-          targetFilePath: message.absoluteFilePath,
-          compilationUnit: unit,
-        ),
-        TachyonDeclarationFinder(
-          idGenerator: idGenerator,
-          apiMessageStream: apiMessageStream,
-          mainSendPort: tachyonSendPort,
-          pluginSendPort: receivePort.sendPort,
-          targetFilePath: message.absoluteFilePath,
-        ),
-        logger,
-      );
-      tachyonSendPort.send(GeneratedCodeApiMessage(
-        id: message.id,
-        code: generatedCode,
-      ).toJson());
-      return;
+    try {
+      if (message is FileModifiedApiMessage) {
+        final CompilationUnit unit = parseString(
+          content: message.fileContent,
+          path: message.absoluteFilePath,
+          featureSet: FeatureSet.latestLanguageVersion(),
+        ).unit;
+        final String generatedCode = await generator.generate(
+          FileChangeBuildInfo(
+            projectDirectoryPath: message.projectDirectoryPath,
+            targetFilePath: message.absoluteFilePath,
+            compilationUnit: unit,
+          ),
+          TachyonDeclarationFinder(
+            idGenerator: idGenerator,
+            apiMessageStream: apiMessageStream,
+            mainSendPort: tachyonSendPort,
+            pluginSendPort: receivePort.sendPort,
+            targetFilePath: message.absoluteFilePath,
+          ),
+          logger,
+        );
+        tachyonSendPort.send(GeneratedCodeApiMessage(
+          id: message.id,
+          code: generatedCode,
+        ).toJson());
+        return;
+      }
+    } catch (error, stackTrace) {
+      logger.error(error, stackTrace);
     }
   });
 
