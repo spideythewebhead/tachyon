@@ -6,13 +6,16 @@ import 'package:tachyon/src/core/tachyon.dart';
 import 'package:tachyon/src/logger/ansi.dart';
 
 extension ParseFileX on String {
-  ParseStringResult dartParse({
-    required FeatureSet featureSet,
+  /// [this] must be an absolute file path.
+  ///
+  /// If [featureSet] is null then [FeatureSet.latestLanguageVersion] is used as default.
+  ParseStringResult parseDart({
+    final FeatureSet? featureSet,
   }) {
     final ParseStringResult result = parseString(
       content: Tachyon.fileSystem.file(this).readAsStringSync(),
       path: this,
-      featureSet: featureSet,
+      featureSet: featureSet ?? FeatureSet.latestLanguageVersion(),
       throwIfDiagnostics: false,
     );
 

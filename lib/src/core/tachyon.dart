@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:dart_style/dart_style.dart';
 import 'package:file/file.dart';
@@ -168,8 +167,7 @@ class Tachyon {
 
       _filesPathsRegistry[targetFilePath] = ParsedFileData(
         absolutePath: targetFilePath,
-        compilationUnit:
-            targetFilePath.dartParse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+        compilationUnit: targetFilePath.parseDart().unit,
         lastModifiedAt: file.lastModifiedSync(),
       );
 
@@ -261,8 +259,7 @@ class Tachyon {
         _dependencyGraph.add(targetFilePath, importFilePath);
         _filesPathsRegistry[importFilePath] = ParsedFileData(
           absolutePath: importFilePath,
-          compilationUnit:
-              importFilePath.dartParse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+          compilationUnit: importFilePath.parseDart().unit,
           lastModifiedAt: Tachyon.fileSystem.file(importFilePath).lastModifiedSync(),
         );
 
@@ -328,8 +325,7 @@ class Tachyon {
 
       _filesPathsRegistry[targetFilePath] = ParsedFileData(
         absolutePath: targetFilePath,
-        compilationUnit:
-            targetFilePath.dartParse(featureSet: FeatureSet.latestLanguageVersion()).unit,
+        compilationUnit: targetFilePath.parseDart().unit,
         lastModifiedAt: Tachyon.fileSystem.file(targetFilePath).lastModifiedSync(),
       );
 
