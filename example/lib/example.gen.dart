@@ -1,5 +1,6 @@
 // AUTO GENERATED - DO NOT MODIFY
 // ignore_for_file: type=lint
+// coverage:ignore-file
 
 part of 'example.dart';
 
