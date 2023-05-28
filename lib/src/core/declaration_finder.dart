@@ -21,9 +21,12 @@ class DeclarationFinder {
     String name, {
     required String targetFilePath,
   }) async {
+    if (_parsedFilesRegistry[targetFilePath] == null) {
+      return null;
+    }
     return await _findClassOrEnumDeclarationByName(
       name,
-      compilationUnit: _parsedFilesRegistry[targetFilePath]!.compilationUnit,
+      compilationUnit: _parsedFilesRegistry.getParsedFileData(targetFilePath).compilationUnit,
       targetFilePath: targetFilePath,
       currentDirectoryPath: Tachyon.fileSystem.file(targetFilePath).parent.absolute.path,
     );
