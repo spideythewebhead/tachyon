@@ -21,12 +21,12 @@ class ConsoleLogger extends Logger {
 
   @override
   void info([final Object? object]) {
-    log('$object'.blue(), LogSeverity.info);
+    log('$object'.cyan(), LogSeverity.info);
   }
 
   @override
   void debug([final Object? object]) {
-    log('$object'.cyan(), LogSeverity.debug);
+    log('$object'.blue(), LogSeverity.debug);
   }
 
   @override
