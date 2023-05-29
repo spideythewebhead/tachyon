@@ -73,7 +73,9 @@ class DeclarationFinder {
         continue;
       }
 
-      parsedFiles.add(_parsedFilesRegistry[dartFilePath]!);
+      if (_parsedFilesRegistry.containsKey(dartFilePath)) {
+        parsedFiles.add(_parsedFilesRegistry.getParsedFileData(dartFilePath));
+      }
     }
 
     for (final ParsedFileData parsedFileData in parsedFiles) {
@@ -124,7 +126,10 @@ class DeclarationFinder {
         continue;
       }
 
-      final ParsedFileData parsedFileData = _parsedFilesRegistry[exportDartFilePath]!;
+      final ParsedFileData? parsedFileData = _parsedFilesRegistry[exportDartFilePath];
+      if (parsedFileData == null) {
+        continue;
+      }
 
       // Check if declaration exists in file
       NamedCompilationUnitMember? nodeDeclaration =
