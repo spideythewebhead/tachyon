@@ -1,3 +1,8 @@
+## 0.0.4
+
+- Improved indexing
+- Improved rebuilding on watch mode
+
 ## 0.0.3
 
 - Added tests
