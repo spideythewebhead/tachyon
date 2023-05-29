@@ -204,7 +204,7 @@ class Tachyon {
         targetFilePath: targetFilePath,
         outputFilePath: targetFilePath.replaceFirst('.dart', '.gen.dart'),
         compilationUnit: entry.value.compilationUnit,
-        skipDependencies: true,
+        rebuildDependents: false,
       );
     }
 
@@ -231,7 +231,7 @@ class Tachyon {
   }) async {
     for (final Directive directive in compilationUnit.directives) {
       String? directiveUri;
-      if (directive is ImportDirective) {
+      if (directive is NamespaceDirective) {
         directiveUri = directive.uri.stringValue;
       }
 
@@ -250,13 +250,17 @@ class Tachyon {
 
       // If the file is already parsed then it already exists on the project
       if (_filesPathsRegistry.containsKey(importFilePath)) {
-        _dependencyGraph.add(targetFilePath, importFilePath);
+        if (directive is ImportDirective) {
+          _dependencyGraph.add(targetFilePath, importFilePath);
+        }
         continue;
       }
 
       // Only project files are added on the dependency graph
       if (path.isWithin(projectDir.path, importFilePath)) {
-        _dependencyGraph.add(targetFilePath, importFilePath);
+        if (directive is ImportDirective) {
+          _dependencyGraph.add(targetFilePath, importFilePath);
+        }
         _filesPathsRegistry[importFilePath] = ParsedFileData(
           absolutePath: importFilePath,
           compilationUnit: importFilePath.parseDart().unit,
@@ -285,18 +289,18 @@ class Tachyon {
         continue;
       }
 
-      final String? importFilePath = await findDartFileFromDirectiveUri(
+      final String? dartFilePath = await findDartFileFromDirectiveUri(
         projectDirectoryPath: projectDir.path,
         currentDirectoryPath: Tachyon.fileSystem.file(targetFilePath).parent.absolute.path,
         uri: directiveUri,
       );
-      if (importFilePath == null || !Tachyon.fileSystem.file(importFilePath).existsSync()) {
+      if (dartFilePath == null || !Tachyon.fileSystem.file(dartFilePath).existsSync()) {
         continue;
       }
 
       // Only project files are added on the dependency graph
-      if (path.isWithin(projectDir.path, importFilePath)) {
-        _dependencyGraph.add(targetFilePath, importFilePath);
+      if (path.isWithin(projectDir.path, dartFilePath)) {
+        _dependencyGraph.add(targetFilePath, dartFilePath);
       }
     }
   }
@@ -338,6 +342,7 @@ class Tachyon {
         targetFilePath: targetFilePath,
         outputFilePath: outputFilePath,
         compilationUnit: _filesPathsRegistry.getParsedFileData(targetFilePath).compilationUnit,
+        rebuildDependents: true,
       );
     } catch (error, stackTrace) {
       logger.exception(error, stackTrace);
@@ -350,7 +355,7 @@ class Tachyon {
     required final String targetFilePath,
     required final String outputFilePath,
     required final CompilationUnit compilationUnit,
-    final bool skipDependencies = false,
+    final bool rebuildDependents = true,
     final String indent = '',
     final bool reportTime = true,
   }) async {
@@ -361,8 +366,6 @@ class Tachyon {
       return;
     }
 
-    logger.debug('$indent~ Checking $relativeFilePath');
-
     late final Stopwatch? stopwatch;
     if (reportTime) {
       stopwatch = Stopwatch()..start();
@@ -370,7 +373,7 @@ class Tachyon {
       stopwatch = null;
     }
 
-    logger.debug('$indent~ Starting build for $relativeFilePath');
+    logger.info('$indent~ Starting build for $relativeFilePath');
 
     final CodeWriter codeWriter = CodeWriter.stringBuffer();
     final String header = generateHeaderForPartFile(targetFilePath);
@@ -403,7 +406,7 @@ class Tachyon {
       }
     }
 
-    if (!skipDependencies) {
+    if (rebuildDependents) {
       await _rebuildDependents(targetFilePath: targetFilePath, indent: indent);
     }
 
@@ -418,23 +421,38 @@ class Tachyon {
     required final String targetFilePath,
     required final String indent,
   }) async {
-    final List<String> dependants = _dependencyGraph.getDependents(targetFilePath);
-    if (dependants.isEmpty) {
+    final Map<String, int> depedentsWeights = <String, int>{};
+
+    void visitDependents(List<String> dependents) {
+      for (final String dependent in dependents) {
+        int weight = depedentsWeights[dependent] ??= 0;
+        depedentsWeights[dependent] = 1 + weight;
+        visitDependents(_dependencyGraph.getDependents(dependent));
+      }
+    }
+
+    visitDependents(_dependencyGraph.getDependents(targetFilePath));
+
+    if (depedentsWeights.isEmpty) {
       return;
     }
 
-    logger.debug('  Rebuilding ${dependants.length} depandents..');
-    await Future.wait(<Future<void>>[
-      for (final String dependency in dependants)
-        _generateCode(
-          targetFilePath: dependency,
-          outputFilePath: dependency.replaceFirst('.dart', '.gen.dart'),
-          compilationUnit: _filesPathsRegistry.getParsedFileData(dependency).compilationUnit,
-          indent: '  $indent',
-          skipDependencies: true,
-          reportTime: false,
-        )
-    ]);
+    final List<_DepedentAndWeight> depedents = <_DepedentAndWeight>[
+      for (final MapEntry<String, int> entry in depedentsWeights.entries)
+        _DepedentAndWeight(name: entry.key, weight: entry.value)
+    ]..sort();
+
+    logger.debug('$indent~ Rebuilding ${depedents.length} depandents..');
+    for (final _DepedentAndWeight dependent in depedents) {
+      await _generateCode(
+        targetFilePath: dependent.name,
+        outputFilePath: dependent.name.replaceFirst('.dart', '.gen.dart'),
+        compilationUnit: _filesPathsRegistry.getParsedFileData(dependent.name).compilationUnit,
+        indent: '  $indent',
+        rebuildDependents: false,
+        reportTime: false,
+      );
+    }
   }
 
   Future<void> _deleteGeneratedFiles() async {
@@ -454,5 +472,20 @@ class Tachyon {
     } catch (_) {
       // ignore any error
     }
+  }
+}
+
+class _DepedentAndWeight extends Comparable<_DepedentAndWeight> {
+  _DepedentAndWeight({
+    required this.name,
+    required this.weight,
+  });
+
+  final String name;
+  final int weight;
+
+  @override
+  int compareTo(_DepedentAndWeight other) {
+    return weight - other.weight;
   }
 }
