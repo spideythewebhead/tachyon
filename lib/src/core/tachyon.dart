@@ -417,33 +417,43 @@ class Tachyon {
     }
   }
 
-  Future<void> _rebuildDependents({
-    required final String targetFilePath,
-    required final String indent,
-  }) async {
-    final Map<String, int> depedentsWeights = <String, int>{};
+  @visibleForTesting
+  Map<String, int> calculateDependentsWeights(String rootFilePath) {
+    final Map<String, int> dependentsWeights = <String, int>{};
 
     void visitDependents(List<String> dependents) {
       for (final String dependent in dependents) {
-        int weight = depedentsWeights[dependent] ??= 0;
-        depedentsWeights[dependent] = 1 + weight;
+        if (dependent == rootFilePath) {
+          continue;
+        }
+        if (dependentsWeights.containsKey(dependent)) {
+          dependentsWeights[dependent] = 1 + dependentsWeights[dependent]!;
+          continue;
+        }
+        dependentsWeights[dependent] ??= 1;
         visitDependents(_dependencyGraph.getDependents(dependent));
       }
     }
 
-    visitDependents(_dependencyGraph.getDependents(targetFilePath));
+    visitDependents(_dependencyGraph.getDependents(rootFilePath));
 
-    if (depedentsWeights.isEmpty) {
+    return dependentsWeights;
+  }
+
+  Future<void> _rebuildDependents({
+    required final String targetFilePath,
+    required final String indent,
+  }) async {
+    final List<_DependentAndWeight> dependents = <_DependentAndWeight>[
+      for (final MapEntry<String, int> entry in calculateDependentsWeights(targetFilePath).entries)
+        _DependentAndWeight(name: entry.key, weight: entry.value)
+    ]..sort();
+    if (dependents.isEmpty) {
       return;
     }
 
-    final List<_DepedentAndWeight> depedents = <_DepedentAndWeight>[
-      for (final MapEntry<String, int> entry in depedentsWeights.entries)
-        _DepedentAndWeight(name: entry.key, weight: entry.value)
-    ]..sort();
-
-    logger.debug('$indent~ Rebuilding ${depedents.length} depandents..');
-    for (final _DepedentAndWeight dependent in depedents) {
+    logger.debug('$indent~ Rebuilding ${dependents.length} depandents..');
+    for (final _DependentAndWeight dependent in dependents) {
       await _generateCode(
         targetFilePath: dependent.name,
         outputFilePath: dependent.name.replaceFirst('.dart', '.gen.dart'),
@@ -475,8 +485,8 @@ class Tachyon {
   }
 }
 
-class _DepedentAndWeight extends Comparable<_DepedentAndWeight> {
-  _DepedentAndWeight({
+class _DependentAndWeight extends Comparable<_DependentAndWeight> {
+  _DependentAndWeight({
     required this.name,
     required this.weight,
   });
@@ -485,7 +495,25 @@ class _DepedentAndWeight extends Comparable<_DepedentAndWeight> {
   final int weight;
 
   @override
-  int compareTo(_DepedentAndWeight other) {
+  int compareTo(_DependentAndWeight other) {
     return weight - other.weight;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      runtimeType,
+      name,
+      weight,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _DependentAndWeight &&
+            runtimeType == other.runtimeType &&
+            name == other.name &&
+            weight == other.weight;
   }
 }
