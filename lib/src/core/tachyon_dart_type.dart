@@ -29,9 +29,9 @@ class TachyonDartType {
     String? prefix;
 
     if (typeAnnotation is NamedType) {
-      if (typeAnnotation.name is PrefixedIdentifier) {
-        prefix = (typeAnnotation.name as PrefixedIdentifier).prefix.name;
-        nameToken = (typeAnnotation.name as PrefixedIdentifier).period.next;
+      if (typeAnnotation.importPrefix != null) {
+        prefix = typeAnnotation.importPrefix!.name.lexeme;
+        nameToken = typeAnnotation.name2;
       }
     }
     nameToken ??= typeAnnotation?.beginToken;
