@@ -1,3 +1,8 @@
+## 0.0.5
+
+- Improved rebuild for circular dependencies
+- Fix deprecation lints
+
 ## 0.0.4
 
 - Improved indexing

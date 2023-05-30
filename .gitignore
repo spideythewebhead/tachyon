@@ -5,3 +5,4 @@
 .test_tmp/
 
 pubspec.lock
+!example/pubspec.lock
