@@ -3,3 +3,5 @@
 .dart_tool/
 
 .test_tmp/
+
+pubspec.lock
