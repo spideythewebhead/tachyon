@@ -373,4 +373,95 @@ import 'a.dart';
       expect(tachyon.parsedFilesPaths, isEmpty);
     });
   });
+
+  group('calculateDependentsWeights', () {
+    setUp(() {
+      Tachyon.fileSystem = MemoryFileSystem.test();
+      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
+    });
+
+    test('Calculates the weights for non cyclic graph', () async {
+      _createCommonTachyonYaml();
+
+      final File aDartFile = projectDir.childDirectory('lib').childFile('a.dart')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+import 'b.dart';
+import 'd.dart';
+''');
+
+      final File bDartFile = projectDir.childDirectory('lib').childFile('b.dart')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+import 'c.dart';
+''');
+
+      final File cDartFile = projectDir.childDirectory('lib').childFile('c.dart')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('');
+
+      final Tachyon tachyon = Tachyon(
+        projectDir: projectDir,
+        logger: _logger,
+      );
+      await tachyon.indexProject();
+
+      final Map<String, int> dependents = tachyon.calculateDependentsWeights(cDartFile.path);
+
+      expect(
+        dependents,
+        equals(<String, int>{
+          bDartFile.path: 1,
+          aDartFile.path: 1,
+        }),
+      );
+    });
+
+    test('Calculates the weights for a cyclic graph', () async {
+      _createCommonTachyonYaml();
+
+      final File aDartFile = projectDir.childDirectory('lib').childFile('a.dart')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+import 'b.dart';
+import 'd.dart';
+''');
+
+      final File bDartFile = projectDir.childDirectory('lib').childFile('b.dart')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+import 'c.dart';
+''');
+
+      final File cDartFile = projectDir.childDirectory('lib').childFile('c.dart')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('');
+
+      final File dDartFile = projectDir.childDirectory('lib').childFile('d.dart')
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+import 'a.dart';
+import 'c.dart';
+''');
+
+      final Tachyon tachyon = Tachyon(
+        projectDir: projectDir,
+        logger: _logger,
+      );
+      await tachyon.indexProject();
+
+      print(tachyon.packagesDependencyGraph);
+
+      final Map<String, int> dependents = tachyon.calculateDependentsWeights(cDartFile.path);
+
+      expect(
+        dependents,
+        equals(<String, int>{
+          bDartFile.path: 1,
+          dDartFile.path: 2,
+          aDartFile.path: 2,
+        }),
+      );
+    });
+  });
 }
