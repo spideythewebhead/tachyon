@@ -450,8 +450,6 @@ import 'c.dart';
       );
       await tachyon.indexProject();
 
-      print(tachyon.packagesDependencyGraph);
-
       final Map<String, int> dependents = tachyon.calculateDependentsWeights(cDartFile.path);
 
       expect(
