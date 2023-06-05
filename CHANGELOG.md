@@ -1,3 +1,8 @@
+## 0.0.6
+
+- Update "analyzer" dependency to 5.13.0
+- Fix registerPlugins path resolving on Windows
+
 ## 0.0.5
 
 - Improved rebuild for circular dependencies
