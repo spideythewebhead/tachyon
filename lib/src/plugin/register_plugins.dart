@@ -181,15 +181,15 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
 
     final File pluginConfigurationFile = Tachyon.fileSystem.file(
       path.join(
-        path.isRelative(package.rootUri.path)
+        path.isRelative(package.rootUri.toFilePath())
             ?
             // The root uri is relative to the project's directory
-            path.canonicalize(path.join(
+            path.normalize(path.join(
                 projectDirPath,
                 kDartToolFolderName,
-                package.rootUri.path,
+                package.rootUri.toFilePath(),
               ))
-            : package.rootUri.path,
+            : package.rootUri.toFilePath(),
         kTachyonPluginConfigFileName,
       ),
     );
