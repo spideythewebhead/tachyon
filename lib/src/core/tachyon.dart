@@ -485,7 +485,7 @@ class Tachyon {
   }
 }
 
-class _DependentAndWeight extends Comparable<_DependentAndWeight> {
+class _DependentAndWeight implements Comparable<_DependentAndWeight> {
   _DependentAndWeight({
     required this.name,
     required this.weight,

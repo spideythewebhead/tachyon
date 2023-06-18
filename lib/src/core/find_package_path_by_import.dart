@@ -63,22 +63,27 @@ Future<String?> findDartFileFromDirectiveUri({
     throw PackageNotFoundException(packageName);
   }
 
-  String packageRootUri = targetPackage.rootUri.path;
-  if (path.isRelative(packageRootUri)) {
-    // This relative path starts from '.dart_tool' folder so the first back level is not needed
-    packageRootUri = packageRootUri.replaceFirst('../', '');
-  }
+  switch (targetPackage.packageUri?.toFilePath()) {
+    case String packageUriPath:
+      String packageRootUri = targetPackage.rootUri.toFilePath();
+      if (path.isRelative(packageRootUri)) {
+        // This relative path starts from '.dart_tool' folder so the first back level is not needed
+        packageRootUri = packageRootUri.replaceFirst('../', '');
+      }
 
-  return path.normalize(
-    path.join(
-      path.isRelative(targetPackage.packageUri.path) ? projectDirectoryPath : '',
-      packageRootUri,
-      targetPackage.packageUri.path,
-      // uri format = package:package_name/path/to/file.dart
-      // we need to extract the 'path/to/file.dart'
-      uri.substring(1 + uri.indexOf('/')),
-    ),
-  );
+      return path.normalize(
+        path.join(
+          path.isRelative(packageUriPath) ? projectDirectoryPath : '',
+          packageRootUri,
+          packageUriPath,
+          // uri format = package:package_name/path/to/file.dart
+          // we need to extract the 'path/to/file.dart'
+          uri.substring(1 + uri.indexOf('/')),
+        ),
+      );
+    default:
+      return null;
+  }
 }
 
 /// Represents an entry for a package on `.dart_tool/package_config.json`
