@@ -10,13 +10,13 @@ class PackageInfo {
     return PackageInfo(
       name: json['name'] as String,
       rootUri: Uri.parse(json['rootUri'] as String),
-      packageUri: Uri.parse(json['packageUri'] as String),
+      packageUri: json['packageUri'] == null ? null : Uri.parse(json['packageUri'] as String),
       languageVersion: json['languageVersion'] as String,
     );
   }
 
   final String name;
   final Uri rootUri;
-  final Uri packageUri;
+  final Uri? packageUri;
   final String languageVersion;
 }
