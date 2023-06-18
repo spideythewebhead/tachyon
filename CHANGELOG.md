@@ -1,3 +1,7 @@
+## 0.0.7
+
+- Fix tachyon build crashing when using flutter > generate: true
+
 ## 0.0.6
 
 - Update "analyzer" dependency to 5.13.0
