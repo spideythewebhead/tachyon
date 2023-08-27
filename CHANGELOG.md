@@ -1,3 +1,8 @@
+## 0.0.8
+
+- Bump dart sdk minimum version to 3.1.0
+- Bump "watcher" to ^1.1.0
+
 ## 0.0.7
 
 - Fix tachyon build crashing when using flutter > generate: true
