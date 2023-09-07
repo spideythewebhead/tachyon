@@ -68,7 +68,7 @@ Future<String?> findDartFileFromDirectiveUri({
       String packageRootUri = targetPackage.rootUri.toFilePath();
       if (path.isRelative(packageRootUri)) {
         // This relative path starts from '.dart_tool' folder so the first back level is not needed
-        packageRootUri = packageRootUri.replaceFirst('../', '');
+        packageRootUri = packageRootUri.replaceFirst('..${path.separator}', '');
       }
 
       return path.normalize(
