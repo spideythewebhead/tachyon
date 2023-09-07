@@ -1,3 +1,7 @@
+## 0.0.9
+
+- Fix not resolving classes correctly on Windows
+
 ## 0.0.8
 
 - Bump dart sdk minimum version to 3.1.0
