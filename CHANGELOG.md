@@ -1,3 +1,7 @@
+## 0.1.0
+
+- Bump dependencies versions to latest
+
 ## 0.0.9
 
 - Fix not resolving classes correctly on Windows
