@@ -26,20 +26,34 @@ class TachyonDeclarationFinder {
   final SendPort _pluginSendPort;
   final String _targetFilePath;
 
-  Future<ClassOrEnumDeclarationMatch?> findClassOrEnum(String name) async {
+  Future<FinderDeclarationMatch<ClassDeclaration>?> findClassOrEnum(String name) async {
+    return _findDeclaration<ClassDeclaration>(name);
+  }
+
+  Future<FinderDeclarationMatch<FunctionDeclaration>?> findFunction(String name) async {
+    return _findDeclaration<FunctionDeclaration>(name);
+  }
+
+  Future<FinderDeclarationMatch<T>?> _findDeclaration<T extends NamedCompilationUnitMember>(
+    String name,
+  ) async {
     final String messageId = _idGenerator.getNext();
 
-    _mainSendPort.send(FindClassOrEnumDeclarationApiMessage(
+    _mainSendPort.send(FindDeclarationApiMessage(
       id: messageId,
       name: name,
       targetFilePath: _targetFilePath,
       sendPort: _pluginSendPort,
+      type: switch (T) {
+        FunctionDeclaration => FindDeclarationType.function,
+        _ => FindDeclarationType.classOrEnum,
+      },
     ).toJson());
 
     final ApiMessage message =
         await _stream.firstWhere((ApiMessage message) => message.id == messageId);
 
-    if (message is FindClassOrEnumDeclarationResultApiMessage) {
+    if (message is FindDeclarationResultApiMessage) {
       final String? absoluteFilePath = message.matchFilePath;
       final String? fileContent = message.unitMemberContent;
       if (absoluteFilePath == null || fileContent == null) {
@@ -51,8 +65,8 @@ class TachyonDeclarationFinder {
         featureSet: FeatureSet.latestLanguageVersion(),
       ).unit;
       final CompilationUnitMember? unitMember = unit.declarations.firstOrNull;
-      if (unitMember is NamedCompilationUnitMember) {
-        return ClassOrEnumDeclarationMatch(
+      if (unitMember is T) {
+        return FinderDeclarationMatch<T>(
           node: unitMember,
           filePath: absoluteFilePath,
         );

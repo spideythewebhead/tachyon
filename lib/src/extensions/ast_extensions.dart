@@ -59,4 +59,11 @@ extension CompilationUnitExtension on CompilationUnit {
         if (declaration is ClassDeclaration) declaration
     ];
   }
+
+  List<FunctionDeclaration> get functionDeclarations {
+    return <FunctionDeclaration>[
+      for (final CompilationUnitMember declaration in declarations)
+        if (declaration is FunctionDeclaration) declaration
+    ];
+  }
 }

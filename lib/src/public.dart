@@ -1,5 +1,5 @@
 export 'core/code_writer.dart';
-export 'core/declaration_finder.dart' show ClassOrEnumDeclarationMatch;
+export 'core/declaration_finder.dart' show FinderDeclarationMatch;
 export 'core/generate_header_for_part_file.dart';
 export 'core/public.dart';
 export 'core/tachyon.dart';

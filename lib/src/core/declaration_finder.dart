@@ -17,14 +17,14 @@ class DeclarationFinder {
   final String _projectDirectoryPath;
   final ParsedFilesRegistry _parsedFilesRegistry;
 
-  Future<ClassOrEnumDeclarationMatch?> findClassOrEnumDeclarationByName(
+  Future<FinderDeclarationMatch<NamedCompilationUnitMember>?> findClassOrEnumDeclarationByName(
     String name, {
     required String targetFilePath,
   }) async {
     if (_parsedFilesRegistry[targetFilePath] == null) {
       return null;
     }
-    return await _findClassOrEnumDeclarationByName(
+    return await _findDeclarationByName(
       name,
       compilationUnit: _parsedFilesRegistry.getParsedFileData(targetFilePath).compilationUnit,
       targetFilePath: targetFilePath,
@@ -32,17 +32,31 @@ class DeclarationFinder {
     );
   }
 
-  Future<ClassOrEnumDeclarationMatch?> _findClassOrEnumDeclarationByName(
+  Future<FinderDeclarationMatch<FunctionDeclaration>?> findFunctionDeclarationByName(
+    String name, {
+    required String targetFilePath,
+  }) async {
+    if (_parsedFilesRegistry[targetFilePath] == null) {
+      return null;
+    }
+    return await _findDeclarationByName<FunctionDeclaration>(
+      name,
+      compilationUnit: _parsedFilesRegistry.getParsedFileData(targetFilePath).compilationUnit,
+      targetFilePath: targetFilePath,
+      currentDirectoryPath: Tachyon.fileSystem.file(targetFilePath).parent.absolute.path,
+    );
+  }
+
+  Future<FinderDeclarationMatch<T>?> _findDeclarationByName<T extends NamedCompilationUnitMember>(
     String name, {
     required CompilationUnit compilationUnit,
     required String targetFilePath,
     required String currentDirectoryPath,
   }) async {
     // Check if declaration exists on the same file
-    NamedCompilationUnitMember? nodeDeclaration =
-        _findClassOrEnumDeclaration(name: name, unit: compilationUnit);
+    T? nodeDeclaration = _findDeclaration<T>(name: name, unit: compilationUnit);
     if (nodeDeclaration != null) {
-      return ClassOrEnumDeclarationMatch(
+      return FinderDeclarationMatch<T>(
         node: nodeDeclaration,
         filePath: targetFilePath,
       );
@@ -80,19 +94,19 @@ class DeclarationFinder {
 
     for (final ParsedFileData parsedFileData in parsedFiles) {
       // Check if declaration exists in import file
-      nodeDeclaration = _findClassOrEnumDeclaration(
+      nodeDeclaration = _findDeclaration(
         name: name,
         unit: parsedFileData.compilationUnit,
       );
       if (nodeDeclaration != null) {
-        return ClassOrEnumDeclarationMatch(
+        return FinderDeclarationMatch<T>(
           node: nodeDeclaration,
           filePath: parsedFileData.absolutePath,
         );
       }
 
       // If the declaration does not exists in the file, check if all the exports of the file
-      final ClassOrEnumDeclarationMatch? match = await _recursivelyExploreExports(
+      final FinderDeclarationMatch<T>? match = await _recursivelyExploreExports(
         name,
         currentDirectoryPath:
             Tachyon.fileSystem.file(parsedFileData.absolutePath).parent.absolute.path,
@@ -106,7 +120,8 @@ class DeclarationFinder {
     return null;
   }
 
-  Future<ClassOrEnumDeclarationMatch?> _recursivelyExploreExports(
+  Future<FinderDeclarationMatch<T>?>
+      _recursivelyExploreExports<T extends NamedCompilationUnitMember>(
     String name, {
     required String currentDirectoryPath,
     required CompilationUnit compilationUnit,
@@ -132,17 +147,16 @@ class DeclarationFinder {
       }
 
       // Check if declaration exists in file
-      NamedCompilationUnitMember? nodeDeclaration =
-          _findClassOrEnumDeclaration(name: name, unit: parsedFileData.compilationUnit);
+      T? nodeDeclaration = _findDeclaration(name: name, unit: parsedFileData.compilationUnit);
       if (nodeDeclaration != null) {
-        return ClassOrEnumDeclarationMatch(
+        return FinderDeclarationMatch<T>(
           node: nodeDeclaration,
           filePath: parsedFileData.absolutePath,
         );
       }
 
       // If the declaration does not exists in the file, check if all the exports of the file
-      final ClassOrEnumDeclarationMatch? match = await _recursivelyExploreExports(
+      final FinderDeclarationMatch<T>? match = await _recursivelyExploreExports(
         name,
         currentDirectoryPath: Tachyon.fileSystem.file(exportDartFilePath).parent.absolute.path,
         compilationUnit: parsedFileData.compilationUnit,
@@ -155,12 +169,12 @@ class DeclarationFinder {
     return null;
   }
 
-  NamedCompilationUnitMember? _findClassOrEnumDeclaration({
+  T? _findDeclaration<T extends NamedCompilationUnitMember>({
     required String name,
     required CompilationUnit unit,
   }) {
     for (final CompilationUnitMember declaration in unit.declarations) {
-      if (declaration is NamedCompilationUnitMember && declaration.name.lexeme == name) {
+      if (declaration is T && declaration.name.lexeme == name) {
         return declaration;
       }
     }
@@ -168,12 +182,12 @@ class DeclarationFinder {
   }
 }
 
-class ClassOrEnumDeclarationMatch {
-  ClassOrEnumDeclarationMatch({
+final class FinderDeclarationMatch<T extends NamedCompilationUnitMember> {
+  FinderDeclarationMatch({
     required this.node,
     required this.filePath,
   });
 
-  final NamedCompilationUnitMember node;
+  final T node;
   final String filePath;
 }

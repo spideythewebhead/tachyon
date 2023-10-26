@@ -253,10 +253,15 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
       return;
     }
 
-    if (message is FindClassOrEnumDeclarationApiMessage) {
-      final ClassOrEnumDeclarationMatch? match = await tachyon.declarationFinder
-          .findClassOrEnumDeclarationByName(message.name, targetFilePath: message.targetFilePath);
-      message.sendPort.send(FindClassOrEnumDeclarationResultApiMessage(
+    if (message is FindDeclarationApiMessage) {
+      final FinderDeclarationMatch<NamedCompilationUnitMember>? match =
+          await switch (message.type) {
+        FindDeclarationType.classOrEnum => tachyon.declarationFinder
+            .findClassOrEnumDeclarationByName(message.name, targetFilePath: message.targetFilePath),
+        FindDeclarationType.function => tachyon.declarationFinder
+            .findFunctionDeclarationByName(message.name, targetFilePath: message.targetFilePath),
+      };
+      message.sendPort.send(FindDeclarationResultApiMessage(
         id: message.id,
         matchFilePath: match?.filePath,
         unitMemberContent: match?.node.toSource(),
