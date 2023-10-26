@@ -11,6 +11,8 @@ class AnnotationValueExtractor {
   late final List<Expression> _arguments =
       _annotation?.arguments?.arguments ?? const <Expression>[];
 
+  bool get isValidAnnotation => _annotation != null;
+
   /// Returns a raw [Expression] for a positioned argument
   Expression? getPositionedArgument(int position) {
     try {

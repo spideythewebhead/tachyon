@@ -6,9 +6,8 @@ final Map<String, _ApiMessageFromJson> _fromJsonMapper = <String, _ApiMessageFro
   RegisterApiMessage._kName: RegisterApiMessage.fromJson,
   FileModifiedApiMessage._kName: FileModifiedApiMessage.fromJson,
   GeneratedCodeApiMessage._kName: GeneratedCodeApiMessage.fromJson,
-  FindClassOrEnumDeclarationApiMessage._kName: FindClassOrEnumDeclarationApiMessage.fromJson,
-  FindClassOrEnumDeclarationResultApiMessage._kName:
-      FindClassOrEnumDeclarationResultApiMessage.fromJson,
+  FindDeclarationApiMessage._kName: FindDeclarationApiMessage.fromJson,
+  FindDeclarationResultApiMessage._kName: FindDeclarationResultApiMessage.fromJson,
 };
 
 /// Base class for messages between isolates used in plugins
@@ -132,22 +131,26 @@ class GeneratedCodeApiMessage implements ApiMessage {
   }
 }
 
-class FindClassOrEnumDeclarationApiMessage implements ApiMessage {
-  static const String _kName = 'find_class_or_enum_declaration';
+class FindDeclarationApiMessage implements ApiMessage {
+  static const String _kName = 'find_declaration';
 
-  FindClassOrEnumDeclarationApiMessage({
+  FindDeclarationApiMessage({
     required this.id,
     required this.name,
     required this.targetFilePath,
     required this.sendPort,
+    required this.type,
   });
 
-  factory FindClassOrEnumDeclarationApiMessage.fromJson(Map<dynamic, dynamic> json) {
-    return FindClassOrEnumDeclarationApiMessage(
+  factory FindDeclarationApiMessage.fromJson(Map<dynamic, dynamic> json) {
+    return FindDeclarationApiMessage(
       id: json['id'] as String,
       name: json['name'] as String,
       targetFilePath: json['targetFilePath'] as String,
       sendPort: json['sendPort'] as SendPort,
+      type: FindDeclarationType.values.firstWhere(
+        (FindDeclarationType type) => type.name == json['type'],
+      ),
     );
   }
 
@@ -156,6 +159,7 @@ class FindClassOrEnumDeclarationApiMessage implements ApiMessage {
   final String name;
   final String targetFilePath;
   final SendPort sendPort;
+  final FindDeclarationType type;
 
   @override
   Map<String, dynamic> toJson() {
@@ -165,21 +169,27 @@ class FindClassOrEnumDeclarationApiMessage implements ApiMessage {
       'name': name,
       'targetFilePath': targetFilePath,
       'sendPort': sendPort,
+      'type': type.name,
     };
   }
 }
 
-class FindClassOrEnumDeclarationResultApiMessage implements ApiMessage {
-  static const String _kName = 'find_class_or_enum_declaration_result';
+enum FindDeclarationType {
+  classOrEnum,
+  function,
+}
 
-  FindClassOrEnumDeclarationResultApiMessage({
+class FindDeclarationResultApiMessage implements ApiMessage {
+  static const String _kName = 'find_declaration_result';
+
+  FindDeclarationResultApiMessage({
     required this.id,
     this.matchFilePath,
     this.unitMemberContent,
   });
 
-  factory FindClassOrEnumDeclarationResultApiMessage.fromJson(Map<dynamic, dynamic> json) {
-    return FindClassOrEnumDeclarationResultApiMessage(
+  factory FindDeclarationResultApiMessage.fromJson(Map<dynamic, dynamic> json) {
+    return FindDeclarationResultApiMessage(
       id: json['id'] as String,
       matchFilePath: json['matchFilePath'] as String?,
       unitMemberContent: json['unitMemberContent'] as String?,

@@ -46,7 +46,7 @@ class C {}
         lastModifiedAt: mainDartFile.lastModifiedSync(),
       );
 
-      final ClassOrEnumDeclarationMatch? match =
+      final FinderDeclarationMatch<NamedCompilationUnitMember>? match =
           await declarationFinder.findClassOrEnumDeclarationByName(
         'B',
         targetFilePath: mainDartFile.path,
@@ -54,14 +54,14 @@ class C {}
 
       expect(
         match,
-        isA<ClassOrEnumDeclarationMatch>()
+        isA<FinderDeclarationMatch<NamedCompilationUnitMember>>()
             .having(
-          (ClassOrEnumDeclarationMatch node) => node.filePath,
+          (FinderDeclarationMatch<NamedCompilationUnitMember> node) => node.filePath,
           'match absolute file path',
           mainDartFile.path,
         )
             .having(
-          (ClassOrEnumDeclarationMatch m) {
+          (FinderDeclarationMatch<NamedCompilationUnitMember> m) {
             final NamedCompilationUnitMember node = m.node;
             if (node is! ClassDeclaration) {
               return null;
@@ -99,7 +99,7 @@ class C {}
           lastModifiedAt: userDartFile.lastModifiedSync(),
         );
 
-      final ClassOrEnumDeclarationMatch? match =
+      final FinderDeclarationMatch<NamedCompilationUnitMember>? match =
           await declarationFinder.findClassOrEnumDeclarationByName(
         'User',
         targetFilePath: mainDartFile.path,
@@ -107,14 +107,14 @@ class C {}
 
       expect(
         match,
-        isA<ClassOrEnumDeclarationMatch>()
+        isA<FinderDeclarationMatch<NamedCompilationUnitMember>>()
             .having(
-          (ClassOrEnumDeclarationMatch m) => m.filePath,
+          (FinderDeclarationMatch<NamedCompilationUnitMember> m) => m.filePath,
           'match absolute file path',
           userDartFile.path,
         )
             .having(
-          (ClassOrEnumDeclarationMatch m) {
+          (FinderDeclarationMatch<NamedCompilationUnitMember> m) {
             final NamedCompilationUnitMember node = m.node;
             if (node is! ClassDeclaration) {
               return null;
@@ -149,7 +149,7 @@ class C {}
           lastModifiedAt: userDartFile.lastModifiedSync(),
         );
 
-      final ClassOrEnumDeclarationMatch? match =
+      final FinderDeclarationMatch<NamedCompilationUnitMember>? match =
           await declarationFinder.findClassOrEnumDeclarationByName(
         'NonExistent',
         targetFilePath: mainDartFile.path,
@@ -173,7 +173,7 @@ class C {}
         lastModifiedAt: mainDartFile.lastModifiedSync(),
       );
 
-      final ClassOrEnumDeclarationMatch? match =
+      final FinderDeclarationMatch<NamedCompilationUnitMember>? match =
           await declarationFinder.findClassOrEnumDeclarationByName(
         'NonExistent',
         targetFilePath: mainDartFile.path,
@@ -191,7 +191,7 @@ class C {}
 
       final File mainDartFile = projectDir.childFile('main.dart')..createSync();
 
-      final ClassOrEnumDeclarationMatch? match =
+      final FinderDeclarationMatch<NamedCompilationUnitMember>? match =
           await declarationFinder.findClassOrEnumDeclarationByName(
         'MyClass',
         targetFilePath: mainDartFile.path,
