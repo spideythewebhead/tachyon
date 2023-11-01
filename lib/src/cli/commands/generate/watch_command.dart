@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io' show Platform, ProcessSignal, exit;
+import 'dart:convert';
+import 'dart:io' show Platform, ProcessSignal, exit, stdin;
 
 import 'package:file/file.dart';
 import 'package:tachyon/src/cli/commands/arguments.dart';
@@ -31,6 +32,8 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
   @override
   final String description = 'Watches project for files changes and rebuilds when necessary';
 
+  StreamSubscription<void>? _stdinSubscription;
+
   @override
   Future<void> execute() async {
     ensureHasPubspec();
@@ -41,17 +44,49 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
     }
     ProcessSignal.sigint.watch().listen((_) => _dispose());
 
+    stdin
+      ..echoMode = false
+      ..lineMode = false;
+
+    bool isRestartingTachyon = false;
+    _stdinSubscription = stdin.transform(const Utf8Decoder()).listen((String input) async {
+      if (input == 'R') {
+        if (isRestartingTachyon) {
+          return;
+        }
+
+        isRestartingTachyon = true;
+        logger.debug('Restarting tachyon..');
+
+        await _tachyon.clearHooks();
+
+        await registerPlugins(tachyon: _tachyon, projectDirPath: directory.path);
+        await _tachyon.rebuild(
+          deleteExistingGeneratedFiles:
+              argResults!.getValue<bool>(GenerateArgumentOption.deleteExistingGeneratedFiles),
+        );
+
+        logger.debug('Restart ended..');
+        isRestartingTachyon = false;
+      }
+    });
+
     await registerPlugins(tachyon: _tachyon, projectDirPath: directory.path);
     await _tachyon.watchProject(
-      onReady: () => logger.debug('Listening'),
+      onReady: () {
+        logger
+          ..debug('Listening')
+          ..info('TIP: Press "R" to restart tachyon');
+      },
       deleteExistingGeneratedFiles:
           argResults!.getValue<bool>(GenerateArgumentOption.deleteExistingGeneratedFiles),
     );
   }
 
-  void _dispose() {
+  Future<void> _dispose() async {
     logger.writeln('Stopping..');
-    _tachyon.dispose();
+    await _tachyon.dispose();
+    await _stdinSubscription?.cancel();
     exit(0);
   }
 

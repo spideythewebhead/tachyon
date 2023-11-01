@@ -289,7 +289,7 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
   tachyon.addDisposeHook(() async {
     await apiMessageSubscription.cancel();
     mainIsolateReceivePort.close();
-    isolate.kill();
+    isolate.kill(priority: Isolate.immediate);
   });
 
   final Map<String, SimpleIdGenerator> pluginNameToIdGenerator = <String, SimpleIdGenerator>{
