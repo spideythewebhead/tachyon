@@ -22,6 +22,11 @@ class AnnotationValueExtractor {
     }
   }
 
+  /// Returns a raw [Expression] for a positioned argument
+  Expression? getNamedArgument(String name) {
+    return _findNamedExpressionByName(name);
+  }
+
   /// Returns a [String] at [position].
   ///
   /// Returns null if not found.
@@ -118,7 +123,7 @@ class AnnotationValueExtractor {
   /// class User { ... }
   ///
   /// final bool shouldGenerateFromJson = AnnotationValueExtractor(classDeclaration.getDataClassAnnotation())
-  ///   .getBool('fromJson') ?? false;
+  ///   .getFunction('fromJson') ?? false;
   /// ```
   String? getFunction(String fieldName) {
     final NamedExpression? argument = _findNamedExpressionByName(fieldName);
