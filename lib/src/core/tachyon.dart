@@ -118,14 +118,38 @@ class Tachyon {
     return watchModeCompleter.future;
   }
 
-  /// Calls all the dispose hooks and clears any open resources
-  Future<void> dispose() async {
-    logger.info('~ Disposing resources... Bye!');
+  Future<void> rebuild({
+    bool deleteExistingGeneratedFiles = false,
+  }) async {
+    _projectWatcherSubscription?.pause();
+
+    await indexProject();
+    await buildProject(
+      deleteExistingGeneratedFiles: deleteExistingGeneratedFiles,
+    );
+
+    _projectWatcherSubscription?.resume();
+  }
+
+  Future<void> clearHooks() async {
     for (final OnDisposeHook disposeHook in _disposeHooks) {
       await disposeHook();
     }
+    _disposeHooks.clear();
+    _codeGenerationHooks.clear();
+  }
+
+  /// Calls all the dispose hooks and clears any open resources
+  Future<void> dispose() async {
+    logger.info('~ Disposing resources... Bye!');
+
+    await clearHooks();
     await _projectWatcherSubscription?.cancel();
+    _projectWatcherSubscription = null;
+
     _watchModeCompleter?.complete();
+    _watchModeCompleter = null;
+
     _dependencyGraph.clear();
     _filesPathsRegistry.clear();
   }
