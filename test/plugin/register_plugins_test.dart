@@ -63,7 +63,7 @@ void main() {
       );
 
       expect(
-        () => registerPlugins(tachyon: tachyon, projectDirPath: projectDir.path),
+        () async => registerPlugins(tachyon: tachyon, projectDirPath: projectDir.path),
         throwsA(isA<DartToolPackageConfigNotFoundException>()),
       );
     });
