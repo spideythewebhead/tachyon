@@ -1,3 +1,11 @@
+## 0.2.0
+
+- Add function declaration method support in DeclarationFinder
+- Add ability to reload plugins without re-running tachyon
+- Add ability to get a named argument (expression) in AnnotationValueExtractor
+- Add "discarded_futures" in analysis_options.yaml
+- Update "ignore_for_file" for generated files
+
 ## 0.1.0
 
 - Bump dependencies versions to latest
