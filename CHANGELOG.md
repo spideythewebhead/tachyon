@@ -1,3 +1,7 @@
+## 0.2.1
+
+- Lower meta and stack_trace dependencies to solve conflicts with flutter_test
+
 ## 0.2.0
 
 - Add function declaration method support in DeclarationFinder
