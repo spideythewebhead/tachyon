@@ -26,8 +26,8 @@ class TachyonDeclarationFinder {
   final SendPort _pluginSendPort;
   final String _targetFilePath;
 
-  Future<FinderDeclarationMatch<ClassDeclaration>?> findClassOrEnum(String name) async {
-    return _findDeclaration<ClassDeclaration>(name);
+  Future<FinderDeclarationMatch<NamedCompilationUnitMember>?> findClassOrEnum(String name) async {
+    return _findDeclaration<NamedCompilationUnitMember>(name);
   }
 
   Future<FinderDeclarationMatch<FunctionDeclaration>?> findFunction(String name) async {
