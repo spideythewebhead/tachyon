@@ -1,3 +1,9 @@
+## 0.2.2
+
+- Fix: Unable to find from/to json methods for enums
+- Handle watcher crashes
+- Update README with vscode issue
+
 ## 0.2.1
 
 - Lower meta and stack_trace dependencies to solve conflicts with flutter_test

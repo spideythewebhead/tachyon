@@ -16,6 +16,6 @@ and use it
 ## Issues with VSCode
 
 When running a flutter app from VSCode the code generator may not receive a file modification event.
-To resolve that you can enable the following option ()
+To resolve that you can enable the following option (Preview Hot Reload On Save Watcher)
 
 <img src="https://raw.githubusercontent.com/spideythewebhead/tachyon/main/images/vscode_watcher_option.png">
