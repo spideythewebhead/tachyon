@@ -12,3 +12,10 @@ and use it
 - data_class_plugin (https://pub.dev/packages/data_class_plugin)
 - http_client_plugin (https://pub.dev/packages/http_client_plugin)
 - riverpod_tachyon_plugin (https://pub.dev/packages/riverpod_tachyon_plugin)
+
+## Issues with VSCode
+
+When running a flutter app from VSCode the code generator may not receive a file modification event.
+To resolve that you can enable the following option ()
+
+<img src="https://raw.githubusercontent.com/spideythewebhead/tachyon/main/images/vscode_watcher_option.png">
