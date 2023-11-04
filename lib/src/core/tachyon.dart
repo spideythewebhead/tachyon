@@ -108,10 +108,13 @@ class Tachyon {
     await buildProject(
       deleteExistingGeneratedFiles: deleteExistingGeneratedFiles,
     );
-    _projectWatcherSubscription =
-        _watcher.events.debounceTime(watchDebounceDuration).listen(_onWatchEvent, onDone: () {
-      _watchModeCompleter?.complete();
-    });
+    _projectWatcherSubscription = _watcher.events
+        .debounceTime(watchDebounceDuration) //
+        .listen(
+          _onWatchEvent,
+          onError: (Object e) {},
+          onDone: _watchModeCompleter?.complete,
+        );
     await _watcher.ready;
     onReady?.call();
     _watchModeCompleter = watchModeCompleter;
