@@ -1,3 +1,7 @@
+## 0.3.0
+
+- Fix: Not able to build when for in is used with pattern matching
+
 ## 0.2.2
 
 - Fix: Unable to find from/to json methods for enums
