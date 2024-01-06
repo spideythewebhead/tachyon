@@ -40,7 +40,7 @@ Isolate.spawn((SendPort tachyonSendPort) {
     try {
       if (message is FileModifiedApiMessage) {
         final CompilationUnit unit = parseString(
-          content: message.fileContent,
+          content: File(message.absoluteFilePath).readAsStringSync(),
           path: message.absoluteFilePath,
           featureSet: FeatureSet.latestLanguageVersion(),
         ).unit;
@@ -88,6 +88,7 @@ await Future.wait(<Future<Isolate>>[
 
   return DartFormatter().format('''
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
 
 import 'package:analyzer/dart/analysis/features.dart';
@@ -323,7 +324,6 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
         id: fileModifiedMessageId,
         projectDirectoryPath: projectDirPath,
         absoluteFilePath: absoluteFilePath,
-        fileContent: compilationUnit.toSource(),
       ).toJson());
 
       final ApiMessage generatedCodeApiMessage = await apiMessageStream
