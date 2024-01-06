@@ -72,7 +72,6 @@ class FileModifiedApiMessage implements ApiMessage {
     required this.id,
     required this.projectDirectoryPath,
     required this.absoluteFilePath,
-    required this.fileContent,
   });
 
   factory FileModifiedApiMessage.fromJson(Map<dynamic, dynamic> json) {
@@ -80,7 +79,6 @@ class FileModifiedApiMessage implements ApiMessage {
       id: json['id'] as String,
       projectDirectoryPath: json['projectDirectoryPath'] as String,
       absoluteFilePath: json['absoluteFilePath'] as String,
-      fileContent: json['fileContent'] as String,
     );
   }
 
@@ -88,7 +86,6 @@ class FileModifiedApiMessage implements ApiMessage {
   final String id;
   final String projectDirectoryPath;
   final String absoluteFilePath;
-  final String fileContent;
 
   @override
   Map<String, dynamic> toJson() {
@@ -97,7 +94,6 @@ class FileModifiedApiMessage implements ApiMessage {
       'id': id,
       'projectDirectoryPath': projectDirectoryPath,
       'absoluteFilePath': absoluteFilePath,
-      'fileContent': fileContent,
     };
   }
 }
