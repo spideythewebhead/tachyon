@@ -22,8 +22,7 @@ dependencies:
   file: ">=6.0.0 <8.0.0"
   stack_trace: ^1.10.0
   watcher: ^1.1.0
-  rxdart: ^0.27.7
 
 dev_dependencies:
-  lints: ^2.1.1
-  test: ^1.24.7
+  lints: ^5.0.0
+  test: ^1.25.8
