@@ -7,7 +7,6 @@ import 'package:file/local.dart';
 import 'package:glob/glob.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as path;
-import 'package:rxdart/rxdart.dart';
 import 'package:tachyon/src/constants.dart';
 import 'package:tachyon/src/core/code_writer.dart';
 import 'package:tachyon/src/core/declaration_finder.dart';
@@ -109,7 +108,7 @@ class Tachyon {
       deleteExistingGeneratedFiles: deleteExistingGeneratedFiles,
     );
     _projectWatcherSubscription = _watcher.events
-        .debounceTime(watchDebounceDuration) //
+        .transform(_DebouncerStreamTransformer<WatchEvent>(Tachyon.watchDebounceDuration)) //
         .listen(
           _onWatchEvent,
           onError: (Object e) {},
@@ -509,6 +508,32 @@ class Tachyon {
     } catch (_) {
       // ignore any error
     }
+  }
+}
+
+class _DebouncerStreamTransformer<T> extends StreamTransformerBase<T, T> {
+  _DebouncerStreamTransformer(this.duration);
+
+  final Duration duration;
+
+  Timer? _timer;
+
+  @override
+  Stream<T> bind(Stream<T> stream) {
+    final StreamController<T> controller = StreamController<T>.broadcast();
+    StreamSubscription<void>? streamSubscription;
+    controller
+      ..onListen = () {
+        streamSubscription = stream.listen((T data) {
+          _timer?.cancel();
+          _timer = Timer(duration, () => controller.add(data));
+        });
+      }
+      ..onCancel = () {
+        unawaited(streamSubscription?.cancel());
+        streamSubscription = null;
+      };
+    return controller.stream;
   }
 }
 

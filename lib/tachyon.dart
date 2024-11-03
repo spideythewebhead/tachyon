@@ -1,3 +1,3 @@
-library tachyon;
+library;
 
 export 'src/public.dart';

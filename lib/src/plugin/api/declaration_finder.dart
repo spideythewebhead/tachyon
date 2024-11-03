@@ -27,16 +27,23 @@ class TachyonDeclarationFinder {
   final String _targetFilePath;
 
   Future<FinderDeclarationMatch<NamedCompilationUnitMember>?> findClassOrEnum(String name) async {
-    return _findDeclaration<NamedCompilationUnitMember>(name);
+    return _findDeclaration<NamedCompilationUnitMember>(
+      name: name,
+      findDeclarationType: FindDeclarationType.classOrEnum,
+    );
   }
 
   Future<FinderDeclarationMatch<FunctionDeclaration>?> findFunction(String name) async {
-    return _findDeclaration<FunctionDeclaration>(name);
+    return _findDeclaration<FunctionDeclaration>(
+      name: name,
+      findDeclarationType: FindDeclarationType.function,
+    );
   }
 
-  Future<FinderDeclarationMatch<T>?> _findDeclaration<T extends NamedCompilationUnitMember>(
-    String name,
-  ) async {
+  Future<FinderDeclarationMatch<T>?> _findDeclaration<T extends NamedCompilationUnitMember>({
+    required String name,
+    required FindDeclarationType findDeclarationType,
+  }) async {
     final String messageId = _idGenerator.getNext();
 
     _mainSendPort.send(FindDeclarationApiMessage(
@@ -44,10 +51,7 @@ class TachyonDeclarationFinder {
       name: name,
       targetFilePath: _targetFilePath,
       sendPort: _pluginSendPort,
-      type: switch (T) {
-        FunctionDeclaration => FindDeclarationType.function,
-        _ => FindDeclarationType.classOrEnum,
-      },
+      type: findDeclarationType,
     ).toJson());
 
     final ApiMessage message =
