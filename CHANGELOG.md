@@ -1,3 +1,8 @@
+## 0.3.1
+
+- Remove dependency on rxdart
+- Fix: Tachyon being disposed twice in "watch" command
+
 ## 0.3.0
 
 - Fix: Not able to build when for in is used with pattern matching
