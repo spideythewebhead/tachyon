@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform, ProcessSignal, exit, stdin;
+import 'dart:io' show Platform, ProcessSignal, stdin;
 
 import 'package:file/file.dart';
 import 'package:tachyon/src/cli/commands/arguments.dart';
@@ -34,15 +34,17 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
 
   StreamSubscription<void>? _stdinSubscription;
 
+  bool _isDisposed = false;
+
   @override
   Future<void> execute() async {
     ensureHasPubspec();
     ensureHasTachyonConfig();
 
     if (!Platform.isWindows) {
-      ProcessSignal.sigterm.watch().listen((_) => _dispose());
+      ProcessSignal.sigterm.watch().listen((_) => dispose());
     }
-    ProcessSignal.sigint.watch().listen((_) => _dispose());
+    ProcessSignal.sigint.watch().listen((_) => dispose());
 
     stdin
       ..echoMode = false
@@ -83,16 +85,13 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
     );
   }
 
-  Future<void> _dispose() async {
-    logger.writeln('Stopping..');
-    await _tachyon.dispose();
-    await _stdinSubscription?.cancel();
-    exit(0);
-  }
-
   @override
   Future<void> dispose() async {
-    await _tachyon.dispose();
-    await super.dispose();
+    if (!_isDisposed) {
+      _isDisposed = true;
+      await _stdinSubscription?.cancel();
+      await _tachyon.dispose();
+      await super.dispose();
+    }
   }
 }
