@@ -333,15 +333,18 @@ class Tachyon {
 
   void _onWatchEvent(WatchEvent event) async {
     final String targetFilePath = path.normalize(event.path);
+    final String outputFilePath = targetFilePath.replaceFirst('.dart', '.gen.dart');
+
+    if (!_dartFileNameMatcher.hasMatch(path.basename(targetFilePath))) {
+      return;
+    }
+
     Completer<void>? buildCompleter;
 
     try {
-      if (!_dartFileNameMatcher.hasMatch(path.basename(targetFilePath))) {
-        return;
+      if (_activeWrites[outputFilePath] case Completer<void> completer) {
+        await completer.future;
       }
-
-      final String outputFilePath = targetFilePath.replaceFirst('.dart', '.gen.dart');
-      await _activeWrites[outputFilePath]?.future;
 
       buildCompleter = Completer<void>();
       _activeWrites[outputFilePath] = buildCompleter;
@@ -374,6 +377,7 @@ class Tachyon {
       logger.exception(error, stackTrace);
     } finally {
       buildCompleter?.safeComplete();
+      _activeWrites.remove(outputFilePath);
     }
   }
 
