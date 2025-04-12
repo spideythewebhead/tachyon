@@ -1,3 +1,7 @@
+## 0.3.2
+
+- Fix: Active write completer never being remove from the active writes map
+
 ## 0.3.1
 
 - Remove dependency on rxdart
