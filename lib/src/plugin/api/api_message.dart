@@ -3,11 +3,12 @@ import 'dart:isolate';
 typedef _ApiMessageFromJson = ApiMessage Function(Map<dynamic, dynamic> json);
 
 final Map<String, _ApiMessageFromJson> _fromJsonMapper = <String, _ApiMessageFromJson>{
-  RegisterApiMessage._kName: RegisterApiMessage.fromJson,
+  PluginRegisteredApiMessage._kName: PluginRegisteredApiMessage.fromJson,
   FileModifiedApiMessage._kName: FileModifiedApiMessage.fromJson,
   GeneratedCodeApiMessage._kName: GeneratedCodeApiMessage.fromJson,
   FindDeclarationApiMessage._kName: FindDeclarationApiMessage.fromJson,
   FindDeclarationResultApiMessage._kName: FindDeclarationResultApiMessage.fromJson,
+  PluginsRegistrationCountApiMessage._kName: PluginsRegistrationCountApiMessage.fromJson,
 };
 
 /// Base class for messages between isolates used in plugins
@@ -25,18 +26,47 @@ abstract class ApiMessage {
   Map<String, dynamic> toJson();
 }
 
-class RegisterApiMessage implements ApiMessage {
-  static const String _kName = 'register';
+class PluginsRegistrationCountApiMessage implements ApiMessage {
+  static const String _kName = 'plugins_registration_count';
 
-  RegisterApiMessage({
+  PluginsRegistrationCountApiMessage({
+    required this.id,
+    required this.count,
+  });
+
+  factory PluginsRegistrationCountApiMessage.fromJson(Map<dynamic, dynamic> json) {
+    return PluginsRegistrationCountApiMessage(
+      id: json['id'] as String,
+      count: json['count'] as int,
+    );
+  }
+
+  @override
+  final String id;
+  final int count;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      '_message': _kName,
+      'id': id,
+      'count': count,
+    };
+  }
+}
+
+class PluginRegisteredApiMessage implements ApiMessage {
+  static const String _kName = 'plugin_registered';
+
+  PluginRegisteredApiMessage({
     required this.id,
     required this.pluginName,
     required this.sendPort,
     required this.supportedAnnotations,
   });
 
-  factory RegisterApiMessage.fromJson(Map<dynamic, dynamic> json) {
-    return RegisterApiMessage(
+  factory PluginRegisteredApiMessage.fromJson(Map<dynamic, dynamic> json) {
+    return PluginRegisteredApiMessage(
       id: json['id'] as String,
       pluginName: json['pluginName'] as String,
       sendPort: json['sendPort'] as SendPort,

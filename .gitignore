@@ -9,3 +9,6 @@ pubspec.lock
 
 # FVM Version Cache
 .fvm/
+
+# Tests
+test/**/*.bootstrap.*

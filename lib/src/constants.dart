@@ -14,3 +14,5 @@ const String kTachyonPluginConfigFileName = 'tachyon_plugin_config.yaml';
 const String kDartToolFolderName = '.dart_tool';
 
 const String kIssueReportUrl = 'https://github.com/spideythewebhead/tachyon/issues';
+
+const bool isAot = bool.fromEnvironment('dart.vm.product');

@@ -206,6 +206,15 @@ file_generation_paths:
       projectDir = Tachyon.fileSystem
           .directory(path.join(io.Directory.current.path, 'test', '.tmp'))
         ..createSync(recursive: true);
+
+      projectDir.safelyRecursivelyDeleteSync();
+
+      Tachyon.fileSystem.file(path.join(projectDir.path, kTachyonConfigFileName))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('''
+file_generation_paths:
+  - "lib/**"
+''');
     });
 
     tearDown(() {
@@ -213,41 +222,28 @@ file_generation_paths:
     });
 
     test('Indexes newly created file', () async {
-      Tachyon.fileSystem.file(path.join(projectDir.path, kTachyonConfigFileName))
-        ..createSync(recursive: true)
-        ..writeAsStringSync('''
-file_generation_paths:
-  - "lib/**"
-''');
-
       final Tachyon tachyon = Tachyon(
         projectDir: projectDir,
         logger: _logger,
       );
+
       await tachyon.watchProject(onReady: () async {
-        final File fileA = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.dart'))
-          ..createSync(recursive: true)
-          ..writeAsStringSync('');
+        final File fileA = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.dart'));
 
-        await Future<void>.delayed(Tachyon.watchDebounceDuration * 2);
+        tachyon.addWatchRebuildFinishedHook(expectAsync0(() async {
+          expect(
+            tachyon.parsedFilesPaths,
+            containsAllInOrder(<String>[fileA.path]),
+          );
 
-        expect(
-          tachyon.parsedFilesPaths,
-          containsAllInOrder(<String>[fileA.path]),
-        );
+          await tachyon.dispose();
+        }));
 
-        await tachyon.dispose();
+        fileA.createSync(recursive: true);
       });
     });
 
     test('Deletes part file when main file is deleted', () async {
-      Tachyon.fileSystem.file(path.join(projectDir.path, kTachyonConfigFileName))
-        ..createSync(recursive: true)
-        ..writeAsStringSync('''
-file_generation_paths:
-  - "lib/**"
-''');
-
       final File fileA = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.dart'))
         ..createSync(recursive: true)
         ..writeAsStringSync('');
@@ -256,71 +252,62 @@ file_generation_paths:
         projectDir: projectDir,
         logger: _logger,
       );
+
       tachyon.addCodeGenerationHook(
         (CompilationUnit compilationUnit, String absoluteFilePath) async => '// THIS IS A TEST',
       );
+
       await tachyon.watchProject(onReady: () async {
-        expect(
-          Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.gen.dart')).existsSync(),
-          isTrue,
-        );
+        final File fileAGen =
+            Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.gen.dart'));
+        expect(fileAGen.existsSync(), isTrue);
+
+        tachyon.addWatchRebuildFinishedHook(expectAsync0(() async {
+          expect(fileA.existsSync(), isFalse);
+          expect(fileAGen.existsSync(), isFalse);
+
+          await tachyon.dispose();
+        }));
 
         fileA.deleteSync();
-        await Future<void>.delayed(Tachyon.watchDebounceDuration * 2);
-
-        expect(
-          Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.gen.dart')).existsSync(),
-          isFalse,
-        );
-
-        await tachyon.dispose();
       });
     });
 
     test('When a new import is added, it is added as dependency', () async {
-      Tachyon.fileSystem.file(path.join(projectDir.path, kTachyonConfigFileName))
-        ..createSync(recursive: true)
-        ..writeAsStringSync('''
-file_generation_paths:
-  - "lib/**"
-''');
-
       Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.dart'))
         ..createSync(recursive: true)
         ..writeAsStringSync('int a = 1;');
 
       final File fileB = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'b.dart'))
         ..createSync(recursive: true)
-        ..writeAsStringSync('''
-import 'a.dart';
-        ''');
+        ..writeAsStringSync('''import 'a.dart';''');
 
       final Tachyon tachyon = Tachyon(
         projectDir: projectDir,
         logger: _logger,
       );
+
       tachyon.addCodeGenerationHook(
         (CompilationUnit compilationUnit, String absoluteFilePath) async => '// THIS IS A TEST',
       );
-      await tachyon.watchProject(onReady: () async {
-        await Future<void>.delayed(const Duration(seconds: 1));
 
+      await tachyon.watchProject(onReady: () async {
         final File fileC = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'c.dart'))
           ..createSync(recursive: true)
           ..writeAsStringSync('');
 
+        tachyon.addWatchRebuildFinishedHook(expectAsync0(() async {
+          expect(
+            tachyon.packagesDependencyGraph.hasDependency(fileB.path, fileC.path),
+            isTrue,
+          );
+
+          await tachyon.dispose();
+        }));
+
         final IOSink fd = fileB.openWrite(mode: FileMode.append)..write("import 'c.dart';");
         await fd.flush();
         await fd.close();
-
-        await Future<void>.delayed(Tachyon.watchDebounceDuration * 2);
-
-        expect(
-          tachyon.packagesDependencyGraph.hasDependency(fileB.path, fileC.path),
-          isTrue,
-        );
-
-        await tachyon.dispose();
       });
     });
   });
