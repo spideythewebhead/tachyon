@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'dart:io' hide File;
 import 'dart:isolate';
 
 import 'package:dart_style/dart_style.dart';
+import 'package:file/file.dart';
 import 'package:path/path.dart' as path;
 import 'package:tachyon/src/constants.dart';
 import 'package:tachyon/src/core/dart_tool_package_info.dart';
@@ -70,7 +71,7 @@ Isolate.spawn((SendPort tachyonSendPort) {
     }
   });
 
-  tachyonSendPort.send(RegisterApiMessage(
+  tachyonSendPort.send(PluginRegisteredApiMessage(
     id: idGenerator.getNext(),
     pluginName: '${plugin.name}',
     sendPort: receivePort.sendPort,
@@ -84,6 +85,8 @@ Isolate.spawn((SendPort tachyonSendPort) {
 await Future.wait(<Future<Isolate>>[
   $pluginsRegistrationCode
 ]);
+
+
 ''';
 
   return DartFormatter().format('''
@@ -98,6 +101,13 @@ import 'package:tachyon/tachyon.dart';
 $pluginsImportCode
 
 void main(List<String> args, SendPort mainSendPort) async {
+  const int pluginsCount = ${plugins.length};
+
+  mainSendPort.send(PluginsRegistrationCountApiMessage(
+    id: '',
+    count: pluginsCount,
+  ).toJson());
+
   $pluginsRegistrationCode
 }
 ''');
@@ -132,113 +142,25 @@ class TachyonPluginRegistrationResult {
   }
 }
 
-Future<List<TachyonPluginRegistrationResult>> registerPlugins({
+Future<void> registerPlugins({
   required Tachyon tachyon,
-  required String projectDirPath,
+  required Uri pluginsMainDartUri,
 }) async {
-  final File packageConfigFile = Tachyon.fileSystem
-      .file(path.join(projectDirPath, kDartToolFolderName, 'package_config.json'));
-
-  if (!await packageConfigFile.exists()) {
-    throw const DartToolPackageConfigNotFoundException();
-  }
-
-  final List<PackageInfo> packages = await packageConfigFile
-      .readAsString()
-      .then((String value) => jsonDecode(value) as Map<dynamic, dynamic>)
-      .then((Map<dynamic, dynamic> json) {
-    return <PackageInfo>[
-      for (final Map<dynamic, dynamic> packageJson in json['packages'])
-        PackageInfo.fromJson(packageJson)
-    ];
-  });
-
-  final List<TachyonPluginRegistrationResult> pluginsRegistrationResults =
-      <TachyonPluginRegistrationResult>[];
-  final List<ExternalPluginConfig> validExternalPluginsConfigs = <ExternalPluginConfig>[];
-
   final TachyonConfig tachyonConfig = tachyon.getConfig();
   if (tachyonConfig.plugins.isEmpty) {
     tachyon.logger.warning('~ No plugins found.. skipping');
-    return pluginsRegistrationResults;
+    return;
   }
 
   tachyon.logger.info('~ Setting up ${tachyonConfig.plugins.length} plugins');
 
-  // Checks the following for all the declared plugins
-  //
-  // 1. If it's declared on ".dart_tool/package_config.json", meaning that "pub get" has been run for this plugin
-  // 2. If the plugin's configuration exists ("tachyon_plugin_config.yaml" file)
-  for (final String pluginName in tachyon.getConfig().plugins) {
-    final PackageInfo? package =
-        packages.firstWhereOrNull((PackageInfo package) => package.name == pluginName);
-    if (package == null) {
-      pluginsRegistrationResults
-          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: false));
-      tachyon.logger.warning(
-          '$pluginName not found. Run ${"pub get".red()} to fix or check ${"pubspec.yaml".red()} for the existence of the dependency. ${"Skipping this plugin".bold()}');
-      continue;
-    }
-
-    final File pluginConfigurationFile = Tachyon.fileSystem.file(
-      path.join(
-        path.isRelative(package.rootUri.toFilePath())
-            ?
-            // The root uri is relative to the project's directory
-            path.normalize(path.join(
-                projectDirPath,
-                kDartToolFolderName,
-                package.rootUri.toFilePath(),
-              ))
-            : package.rootUri.toFilePath(),
-        kTachyonPluginConfigFileName,
-      ),
-    );
-    if (!await pluginConfigurationFile.exists()) {
-      pluginsRegistrationResults
-          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: false));
-      tachyon.logger
-          .warning('${kTachyonPluginConfigFileName.bold()} not found for plugin $pluginName');
-      continue;
-    }
-
-    try {
-      final ExternalPluginConfig pluginConfig = await pluginConfigurationFile
-          .readAsString()
-          .then((String value) => loadYaml(value) as YamlMap)
-          .then((YamlMap value) => ExternalPluginConfig.fromJson(value));
-
-      validExternalPluginsConfigs.add(pluginConfig);
-      pluginsRegistrationResults
-          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: true));
-    } catch (error, stackTrace) {
-      pluginsRegistrationResults
-          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: false));
-      tachyon.logger
-        ..warning('Failed to register plugin $pluginName')
-        ..error(error, stackTrace);
-    }
-  }
-
-  if (validExternalPluginsConfigs.isEmpty) {
-    tachyon.logger.warning(
-        'All plugins have failed to be registered. Check the configuration of your project and try again. Or report an issue ($kIssueReportUrl)');
-    return pluginsRegistrationResults;
-  }
-
-  final List<RegisterApiMessage> externalPluginsRegisterApiMessage = <RegisterApiMessage>[];
-  final File dartProgram = await Tachyon.fileSystem
-      .file(path.join(
-        projectDirPath,
-        kDartToolFolderName,
-        'tachyon',
-        'main.dart',
-      ))
-      .create(recursive: true);
-  await dartProgram.writeAsString(_pluginMainDartTemplate(validExternalPluginsConfigs));
+  final List<PluginRegisteredApiMessage> externalPluginsRegisterApiMessage =
+      <PluginRegisteredApiMessage>[];
 
   final Completer<void> pluginsSetupCompleter = Completer<void>();
   final ReceivePort mainIsolateReceivePort = ReceivePort();
+
+  late int expectedPluginsRegistrationCount;
 
   final Stream<ApiMessage> apiMessageStream = mainIsolateReceivePort
       .asBroadcastStream()
@@ -246,9 +168,14 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
       .map<ApiMessage>(ApiMessage.fromJson);
 
   void onApiMessageReceived(ApiMessage message) async {
-    if (message is RegisterApiMessage) {
+    if (message is PluginsRegistrationCountApiMessage) {
+      expectedPluginsRegistrationCount = message.count;
+      return;
+    }
+
+    if (message is PluginRegisteredApiMessage) {
       externalPluginsRegisterApiMessage.add(message);
-      if (externalPluginsRegisterApiMessage.length == validExternalPluginsConfigs.length) {
+      if (externalPluginsRegisterApiMessage.length == expectedPluginsRegistrationCount) {
         pluginsSetupCompleter.complete();
       }
       return;
@@ -275,7 +202,7 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
       apiMessageStream.listen(onApiMessageReceived);
 
   final Isolate isolate = await Isolate.spawnUri(
-    dartProgram.uri,
+    pluginsMainDartUri,
     const <String>[],
     mainIsolateReceivePort.sendPort,
     errorsAreFatal: true,
@@ -287,28 +214,29 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
   await pluginsSetupCompleter.future;
 
   // Clear resources when Tachyon is disposed
-  tachyon.addDisposeHook(() async {
-    await apiMessageSubscription.cancel();
+  tachyon.addDisposeHook(() {
+    apiMessageSubscription.cancel();
     mainIsolateReceivePort.close();
     isolate.kill(priority: Isolate.immediate);
   });
 
   final Map<String, SimpleIdGenerator> pluginNameToIdGenerator = <String, SimpleIdGenerator>{
-    for (final RegisterApiMessage message in externalPluginsRegisterApiMessage)
+    for (final PluginRegisteredApiMessage message in externalPluginsRegisterApiMessage)
       message.pluginName: SimpleIdGenerator(name: message.pluginName),
   };
 
   // This hook is called everytime a file change occurs
   tachyon.addCodeGenerationHook((CompilationUnit compilationUnit, String absoluteFilePath) async {
-    Map<String, RegisterApiMessage> pluginNameToRegisterApiMessage = <String, RegisterApiMessage>{};
+    Map<String, PluginRegisteredApiMessage> pluginNameToRegisterApiMessage =
+        <String, PluginRegisteredApiMessage>{};
     // Gather all plugins that can handle the annotations found in this compilation unit
     for (final CompilationUnitMember member in compilationUnit.declarations) {
-      final List<RegisterApiMessage> registerApiMessages =
-          externalPluginsRegisterApiMessage.where((RegisterApiMessage message) {
+      final List<PluginRegisteredApiMessage> registerApiMessages =
+          externalPluginsRegisterApiMessage.where((PluginRegisteredApiMessage message) {
         return message.supportedAnnotations
             .any((String annotation) => member.metadata.hasAnnotationWithName(annotation));
       }).toList(growable: false);
-      for (final RegisterApiMessage match in registerApiMessages) {
+      for (final PluginRegisteredApiMessage match in registerApiMessages) {
         pluginNameToRegisterApiMessage[match.pluginName] = match;
       }
     }
@@ -322,7 +250,7 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
       final String fileModifiedMessageId = pluginNameToIdGenerator[pluginName]!.getNext();
       sendPort.send(FileModifiedApiMessage(
         id: fileModifiedMessageId,
-        projectDirectoryPath: projectDirPath,
+        projectDirectoryPath: tachyon.projectDir.path,
         absoluteFilePath: absoluteFilePath,
       ).toJson());
 
@@ -338,7 +266,7 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
     }
 
     await Future.wait(<Future<void>>[
-      for (final RegisterApiMessage message in pluginNameToRegisterApiMessage.values)
+      for (final PluginRegisteredApiMessage message in pluginNameToRegisterApiMessage.values)
         informPluginForFileChange(message.pluginName, message.sendPort)
     ]);
 
@@ -348,6 +276,150 @@ Future<List<TachyonPluginRegistrationResult>> registerPlugins({
   tachyon.logger.info(
     '~ Registered ${externalPluginsRegisterApiMessage.length} out of ${tachyonConfig.plugins.length} plugins',
   );
+}
 
-  return pluginsRegistrationResults;
+typedef PluginsCompilationResult = ({
+  File? main,
+  int exitCode,
+});
+
+PluginsCompilationResult compilePlugins(
+  Tachyon tachyon, {
+  bool aot = false,
+}) {
+  final (
+    :File? pluginsMain,
+    :List<TachyonPluginRegistrationResult> pluginsRegistrationResults,
+  ) = _createPluginsMainDart(tachyon);
+
+  if (pluginsMain == null) {
+    return (main: null, exitCode: 0);
+  }
+
+  if (aot) {
+    final ProcessResult result = Process.runSync('dart', <String>[
+      'compile',
+      'aot-snapshot',
+      pluginsMain.path,
+    ]);
+
+    if (result.exitCode != 0) {
+      tachyon.logger.error('Failed to compile plugins as AOT');
+      return (main: pluginsMain, exitCode: result.exitCode);
+    }
+
+    final File aotDartProgram =
+        Tachyon.fileSystem.file(path.join(path.dirname(pluginsMain.path), 'main.aot'));
+
+    tachyon.logger.info('Compiled plugins as AOT');
+
+    return (main: aotDartProgram, exitCode: 0);
+  }
+
+  return (main: pluginsMain, exitCode: 0);
+}
+
+typedef _CreatePluginsMainDartResult = ({
+  File? pluginsMain,
+  List<TachyonPluginRegistrationResult> pluginsRegistrationResults,
+});
+
+_CreatePluginsMainDartResult _createPluginsMainDart(Tachyon tachyon) {
+  final File packageConfigFile = Tachyon.fileSystem.file(path.join(
+    tachyon.projectDir.path,
+    kDartToolFolderName,
+    'package_config.json',
+  ));
+
+  if (!packageConfigFile.existsSync()) {
+    throw const DartToolPackageConfigNotFoundException();
+  }
+
+  final Map<String, dynamic> packageFileJson = jsonDecode(packageConfigFile.readAsStringSync());
+  final Map<String, PackageInfo> packages = <String, PackageInfo>{
+    for (final Map<dynamic, dynamic> packageJson in packageFileJson['packages'])
+      packageJson['name'] as String: PackageInfo.fromJson(packageJson)
+  };
+
+  final List<TachyonPluginRegistrationResult> pluginsRegistrationResults =
+      <TachyonPluginRegistrationResult>[];
+
+  final List<ExternalPluginConfig> validExternalPluginsConfigs = <ExternalPluginConfig>[];
+
+  // Checks the following for all the declared plugins
+  //
+  // 1. If it's declared on ".dart_tool/package_config.json", meaning that "pub get" has been run for this plugin
+  // 2. If the plugin's configuration exists ("tachyon_plugin_config.yaml" file)
+  for (final String pluginName in tachyon.getConfig().plugins) {
+    final PackageInfo? package = packages[pluginName];
+    if (package == null) {
+      pluginsRegistrationResults
+          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: false));
+      tachyon.logger.warning(
+          '$pluginName not found. Run ${"pub get".red()} to fix or check ${"pubspec.yaml".red()} for the existence of the dependency. ${"Skipping this plugin".bold()}');
+      continue;
+    }
+
+    final File pluginConfigurationFile = Tachyon.fileSystem.file(
+      path.join(
+        path.isRelative(package.rootUri.toFilePath())
+            ?
+            // The root uri is relative to the project's directory
+            path.normalize(path.join(
+                tachyon.projectDir.path,
+                kDartToolFolderName,
+                package.rootUri.toFilePath(),
+              ))
+            : package.rootUri.toFilePath(),
+        kTachyonPluginConfigFileName,
+      ),
+    );
+
+    if (!pluginConfigurationFile.existsSync()) {
+      pluginsRegistrationResults
+          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: false));
+      tachyon.logger
+          .warning('${kTachyonPluginConfigFileName.bold()} not found for plugin $pluginName');
+      continue;
+    }
+
+    try {
+      final ExternalPluginConfig pluginConfig = ExternalPluginConfig.fromJson(
+        loadYaml(pluginConfigurationFile.readAsStringSync()) as YamlMap,
+      );
+
+      validExternalPluginsConfigs.add(pluginConfig);
+      pluginsRegistrationResults
+          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: true));
+    } catch (error, stackTrace) {
+      pluginsRegistrationResults
+          .add(TachyonPluginRegistrationResult(pluginName: pluginName, isRegistered: false));
+      tachyon.logger
+        ..warning('Failed to register plugin $pluginName')
+        ..error(error, stackTrace);
+    }
+  }
+
+  if (validExternalPluginsConfigs.isEmpty) {
+    tachyon.logger.warning(
+        'All plugins have failed to be registered. Check the configuration of your project and try again. Or report an issue ($kIssueReportUrl)');
+    return (
+      pluginsMain: null,
+      pluginsRegistrationResults: pluginsRegistrationResults,
+    );
+  }
+
+  final File dartProgram = Tachyon.fileSystem.file(path.join(
+    tachyon.projectDir.path,
+    kDartToolFolderName,
+    'tachyon',
+    'main.dart',
+  ))
+    ..createSync(recursive: true);
+  dartProgram.writeAsStringSync(_pluginMainDartTemplate(validExternalPluginsConfigs));
+
+  return (
+    pluginsMain: dartProgram,
+    pluginsRegistrationResults: pluginsRegistrationResults,
+  );
 }

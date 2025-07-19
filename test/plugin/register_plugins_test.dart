@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:file/file.dart';
 import 'package:file/memory.dart';
 import 'package:path/path.dart' as path;
@@ -16,26 +14,6 @@ import '../utils.dart';
 const String _kProjectDirPath = '/home/user/project';
 const Logger _logger = NoOpLogger();
 
-void _createCommonTachyonYaml({
-  List<String>? plugins,
-}) {
-  StringBuffer pluginsCode = StringBuffer();
-  if (plugins != null) {
-    pluginsCode.writeln('plugins:');
-    for (final String pluginName in plugins) {
-      pluginsCode.writeln('  - $pluginName');
-    }
-  }
-  Tachyon.fileSystem.file(path.join(_kProjectDirPath, kTachyonConfigFileName))
-    ..createSync()
-    ..writeAsStringSync('''
-file_generation_paths:
-  - "lib/**"
-
-$pluginsCode
-''');
-}
-
 void main() {
   late Directory projectDir;
 
@@ -43,61 +21,10 @@ void main() {
     projectDir.safelyRecursivelyDeleteSync();
   });
 
-  File getPackageConfigFile() {
-    return Tachyon.fileSystem
-        .file(path.join(projectDir.path, kDartToolFolderName, 'package_config.json'));
-  }
-
   group('registerPlugins', () {
     setUp(() {
       Tachyon.fileSystem = MemoryFileSystem.test();
       projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
-    });
-
-    test('Throws "DartToolPackageConfigNotFoundException"', () {
-      _createCommonTachyonYaml();
-
-      final Tachyon tachyon = Tachyon(
-        projectDir: projectDir,
-        logger: _logger,
-      );
-
-      expect(
-        () async => registerPlugins(tachyon: tachyon, projectDirPath: projectDir.path),
-        throwsA(isA<DartToolPackageConfigNotFoundException>()),
-      );
-    });
-
-    test('All plugins fail to register as there is no information on "package_config.json"',
-        () async {
-      _createCommonTachyonYaml(
-        plugins: <String>['a', 'b'],
-      );
-
-      getPackageConfigFile()
-        ..createSync(recursive: true)
-        ..writeAsStringSync(jsonEncode(
-          <String, dynamic>{
-            'configVersion': 2,
-            'packages': <Map<String, String>>[],
-          },
-        ));
-
-      final Tachyon tachyon = Tachyon(
-        projectDir: projectDir,
-        logger: _logger,
-      );
-
-      final List<TachyonPluginRegistrationResult> registrationResults =
-          await registerPlugins(tachyon: tachyon, projectDirPath: _kProjectDirPath);
-
-      expect(
-        registrationResults,
-        containsAllInOrder(<TachyonPluginRegistrationResult>[
-          TachyonPluginRegistrationResult(pluginName: 'a', isRegistered: false),
-          TachyonPluginRegistrationResult(pluginName: 'b', isRegistered: false),
-        ]),
-      );
     });
 
     test('Registers 2 plugins and generates code', () async {
@@ -135,21 +62,11 @@ class Test {}
         logger: _logger,
       );
 
-      final List<TachyonPluginRegistrationResult> registrationResults =
-          await registerPlugins(tachyon: tachyon, projectDirPath: pluginsTesterProjectDir.path);
+      final (exitCode: _, :File? main) = compilePlugins(tachyon);
 
-      expect(
-        registrationResults,
-        containsAllInOrder(<TachyonPluginRegistrationResult>[
-          TachyonPluginRegistrationResult(
-            pluginName: pluginAName,
-            isRegistered: true,
-          ),
-          TachyonPluginRegistrationResult(
-            pluginName: pluginBName,
-            isRegistered: true,
-          )
-        ]),
+      await expectLater(
+        registerPlugins(tachyon: tachyon, pluginsMainDartUri: main!.uri),
+        completes,
       );
 
       expect(
@@ -185,4 +102,45 @@ class Test {}
       await tachyon.dispose();
     });
   });
+
+  group('compilePlugins', () {
+    setUp(() {
+      Tachyon.fileSystem = MemoryFileSystem.test();
+      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
+    });
+
+    test('Throws "DartToolPackageConfigNotFoundException"', () {
+      _createCommonTachyonYaml();
+
+      final Tachyon tachyon = Tachyon(
+        projectDir: projectDir,
+        logger: _logger,
+      );
+
+      expect(
+        () async => compilePlugins(tachyon),
+        throwsA(isA<DartToolPackageConfigNotFoundException>()),
+      );
+    });
+  });
+}
+
+void _createCommonTachyonYaml({
+  List<String>? plugins,
+}) {
+  StringBuffer pluginsCode = StringBuffer();
+  if (plugins != null) {
+    pluginsCode.writeln('plugins:');
+    for (final String pluginName in plugins) {
+      pluginsCode.writeln('  - $pluginName');
+    }
+  }
+  Tachyon.fileSystem.file(path.join(_kProjectDirPath, kTachyonConfigFileName))
+    ..createSync()
+    ..writeAsStringSync('''
+file_generation_paths:
+  - "lib/**"
+
+$pluginsCode
+''');
 }

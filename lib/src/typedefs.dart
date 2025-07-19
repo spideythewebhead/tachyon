@@ -17,3 +17,5 @@ typedef OnCodeGenerationHook = Future<String?> Function(
 );
 
 typedef OnDisposeHook = FutureOr<void> Function();
+
+typedef OnWatchRebuildFinishedHook = void Function();

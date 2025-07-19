@@ -67,6 +67,8 @@ class Tachyon {
 
   final List<OnCodeGenerationHook> _codeGenerationHooks = <OnCodeGenerationHook>[];
   final List<OnDisposeHook> _disposeHooks = <OnDisposeHook>[];
+  final List<OnWatchRebuildFinishedHook> _onWatchRebuildFinishedHook =
+      <OnWatchRebuildFinishedHook>[];
 
   Completer<void>? _watchModeCompleter;
   StreamSubscription<WatchEvent>? _projectWatcherSubscription;
@@ -97,6 +99,11 @@ class Tachyon {
     _disposeHooks.add(hook);
   }
 
+  @visibleForTesting
+  void addWatchRebuildFinishedHook(OnWatchRebuildFinishedHook hook) {
+    _onWatchRebuildFinishedHook.add(hook);
+  }
+
   /// Watches this project for any files changes and rebuilds the filed and depedants of the file.
   Future<void> watchProject({
     void Function()? onReady,
@@ -117,7 +124,7 @@ class Tachyon {
     await _watcher.ready;
     onReady?.call();
     _watchModeCompleter = watchModeCompleter;
-    return watchModeCompleter.future;
+    return await watchModeCompleter.future;
   }
 
   Future<void> rebuild({
@@ -378,6 +385,14 @@ class Tachyon {
     } finally {
       buildCompleter?.safeComplete();
       _activeWrites.remove(outputFilePath);
+
+      for (final OnWatchRebuildFinishedHook hook in _onWatchRebuildFinishedHook) {
+        try {
+          hook();
+        } on Exception catch (error, stackTrace) {
+          logger.error('[OnWatchRebuildFinishedHook] crashed. $error', stackTrace);
+        }
+      }
     }
   }
 
