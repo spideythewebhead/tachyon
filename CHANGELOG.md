@@ -1,3 +1,10 @@
+## 0.4.0-dev.0
+
+- [Experimental] New command introduced `compile` [#68](https://github.com/spideythewebhead/tachyon/issues/68)
+  - run: `dart run tachyon compile`
+  - This command compiles tachyon and the plugins used in the project and outputs an executable file called `ctachyon`. `ctachyon <command>` replaces `dart run tachyon <command>`
+  - Updating tachyon or any of the plugins require a re-compilation
+
 ## 0.3.2
 
 - Fix: Active write completer never being remove from the active writes map
