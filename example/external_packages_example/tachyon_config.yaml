@@ -1,0 +1,12 @@
+file_generation_paths:
+  - "lib/example.dart"
+
+external_packages:
+  random_classes:
+    file_generation_paths:
+      - 
+
+plugins:
+  - external_packages_example
+
+generated_file_line_length: 100

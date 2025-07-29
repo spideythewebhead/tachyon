@@ -15,7 +15,7 @@ class MyCustomCodeGenerator extends TachyonPluginCodeGenerator {
     // TachyonDeclarationFinder is a helper that lets you find a class or an enum through the indexed project
     TachyonDeclarationFinder declarationFinder,
     Logger logger,
-  ) {
+  ) async {
     // CodeWriter is a helper class that lets you write a big content of strings
     final CodeWriter codeWriter = CodeWriter.stringBuffer();
 

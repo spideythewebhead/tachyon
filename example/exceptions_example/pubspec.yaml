@@ -1,4 +1,4 @@
-name: example
+name: exceptions_example
 description: An example of how to create a basic plugin and using it.
 version: 1.0.0
 publish_to: none
@@ -9,7 +9,7 @@ environment:
 dependencies:
   meta: ^1.9.1
   tachyon:
-    path: ../
+    path: ../..
 
 dev_dependencies:
   lints: ^2.0.0

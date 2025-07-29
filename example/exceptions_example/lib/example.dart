@@ -1,6 +1,6 @@
 import 'dart:collection';
 
-import 'package:example/generator/annotations.dart';
+import 'package:exceptions_example/generator/annotations.dart';
 
 part 'example.gen.dart';
 

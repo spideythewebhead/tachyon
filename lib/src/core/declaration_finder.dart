@@ -1,5 +1,4 @@
 import 'package:analyzer/dart/ast/ast.dart';
-import 'package:path/path.dart' as path;
 import 'package:tachyon/src/core/find_package_path_by_import.dart';
 import 'package:tachyon/src/core/parsed_file_data.dart';
 import 'package:tachyon/src/core/parsed_files_registry.dart';
@@ -11,11 +10,14 @@ class DeclarationFinder {
   DeclarationFinder({
     required final String projectDirectoryPath,
     required final ParsedFilesRegistry parsedFilesRegistry,
+    required final bool Function(String filePath) canVisitFile,
   })  : _projectDirectoryPath = projectDirectoryPath,
-        _parsedFilesRegistry = parsedFilesRegistry;
+        _parsedFilesRegistry = parsedFilesRegistry,
+        _canVisitFile = canVisitFile;
 
   final String _projectDirectoryPath;
   final ParsedFilesRegistry _parsedFilesRegistry;
+  final bool Function(String filePath) _canVisitFile;
 
   Future<FinderDeclarationMatch<NamedCompilationUnitMember>?> findClassOrEnumDeclarationByName(
     String name, {
@@ -83,7 +85,7 @@ class DeclarationFinder {
       );
 
       // If import file not found or the file is not part of the project skip
-      if (dartFilePath == null || !path.isWithin(_projectDirectoryPath, dartFilePath)) {
+      if (dartFilePath == null || !_canVisitFile(dartFilePath)) {
         continue;
       }
 

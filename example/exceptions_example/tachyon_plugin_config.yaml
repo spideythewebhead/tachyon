@@ -1,0 +1,8 @@
+name: exceptions_example
+
+code_generator:
+  file: generator/code_generator.dart
+  className: MyCustomCodeGenerator
+
+annotations:
+  - ProvideExceptions
