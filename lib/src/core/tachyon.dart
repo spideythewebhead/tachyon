@@ -9,6 +9,7 @@ import 'package:meta/meta.dart';
 import 'package:path/path.dart' as path;
 import 'package:tachyon/src/constants.dart';
 import 'package:tachyon/src/core/code_writer.dart';
+import 'package:tachyon/src/core/dart_tool_package_info.dart';
 import 'package:tachyon/src/core/declaration_finder.dart';
 import 'package:tachyon/src/core/find_package_path_by_import.dart';
 import 'package:tachyon/src/core/generate_header_for_part_file.dart';
@@ -63,12 +64,15 @@ class Tachyon {
   late final DeclarationFinder declarationFinder = DeclarationFinder(
     projectDirectoryPath: projectDir.path,
     parsedFilesRegistry: _filesPathsRegistry,
+    canVisitFile: _canIndexFile,
   );
 
   final List<OnCodeGenerationHook> _codeGenerationHooks = <OnCodeGenerationHook>[];
   final List<OnDisposeHook> _disposeHooks = <OnDisposeHook>[];
   final List<OnWatchRebuildFinishedHook> _onWatchRebuildFinishedHook =
       <OnWatchRebuildFinishedHook>[];
+
+  late ResolvedPackages _resolvedPackages;
 
   Completer<void>? _watchModeCompleter;
   StreamSubscription<WatchEvent>? _projectWatcherSubscription;
@@ -169,29 +173,65 @@ class Tachyon {
   Future<void> indexProject({bool forceClear = false}) async {
     logger.info('~ Indexing project..');
 
+    final Stopwatch stopwatch = Stopwatch()..start();
+
     if (forceClear) {
       _filesPathsRegistry.clear();
       _dependencyGraph.clear();
     }
 
-    final Stopwatch stopwatch = Stopwatch()..start();
-    final TachyonConfig pluginConfig = getConfig();
+    _resolvedPackages = PackageResolver.resolvePackages(projectDir.path);
 
-    final Iterable<File> dartFiles = projectDir
+    final TachyonConfig config = getConfig();
+    List<File> filesToBeIndexed = <File>[];
+
+    for (final String packageName in config.externalPackages.keys) {
+      final PackageInfo? package = _resolvedPackages[packageName];
+      if (package == null) {
+        logger.warning('Failed to find package with name "$packageName"');
+        continue;
+      }
+
+      final Directory directory =
+          Tachyon.fileSystem.directory(package.resolveAbsolutePath(projectPath: projectDir.path));
+      logger.info('~ External package "$packageName" found');
+
+      filesToBeIndexed.addAll(directory
+          .listSync(recursive: true) //
+          .where((FileSystemEntity entity) {
+        if (entity is! File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
+          return false;
+        }
+
+        final List<Glob> globs = config.externalPackages[packageName]!.fileGenerationPaths;
+
+        return globs.isEmpty ||
+            globs.any((Glob glob) {
+              return glob.matches(
+                path.relative(entity.absolute.path, from: directory.path),
+              );
+            });
+      }).cast<File>());
+    }
+
+    filesToBeIndexed.addAll(projectDir
         .listSync(recursive: true) //
         .where((FileSystemEntity entity) {
       if (entity is! File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
         return false;
       }
 
-      return pluginConfig.fileGenerationPaths.any((Glob glob) {
-        return glob.matches(
-          path.relative(entity.absolute.path, from: projectDir.absolute.path),
-        );
-      });
-    }).cast<File>();
+      final List<Glob> globs = config.fileGenerationPaths;
 
-    for (final File file in dartFiles) {
+      return globs.isEmpty ||
+          config.fileGenerationPaths.any((Glob glob) {
+            return glob.matches(
+              path.relative(entity.absolute.path, from: projectDir.absolute.path),
+            );
+          });
+    }).cast<File>());
+
+    for (final File file in filesToBeIndexed) {
       final String targetFilePath = file.absolute.path;
 
       if (_filesPathsRegistry.containsKey(targetFilePath)) {
@@ -290,10 +330,11 @@ class Tachyon {
       }
 
       // Only project files are added on the dependency graph
-      if (path.isWithin(projectDir.path, importFilePath)) {
+      if (_canIndexFile(importFilePath)) {
         if (directive is ImportDirective) {
           _dependencyGraph.add(targetFilePath, importFilePath);
         }
+
         _filesPathsRegistry[importFilePath] = ParsedFileData(
           absolutePath: importFilePath,
           compilationUnit: importFilePath.parseDart().unit,
@@ -306,6 +347,27 @@ class Tachyon {
         );
       }
     }
+  }
+
+  /// Returns true if [filePath] exists in the root project or any external package
+  ///
+  /// Note: globs configured in `tachyon_config.file_paths_generation` are ignored
+  ///
+  /// Otherwise false is returned
+  bool _canIndexFile(String filePath) {
+    if (path.isWithin(projectDir.path, filePath)) {
+      return true;
+    }
+
+    for (final PackageInfo package in _resolvedPackages) {
+      final String packagePath = path.join(
+          package.resolveAbsolutePath(projectPath: projectDir.path), package.packageUri.path);
+      if (path.isWithin(packagePath, filePath)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   Future<void> _updateDependencyGraphForFile({
@@ -332,7 +394,7 @@ class Tachyon {
       }
 
       // Only project files are added on the dependency graph
-      if (path.isWithin(projectDir.path, dartFilePath)) {
+      if (_canIndexFile(dartFilePath)) {
         _dependencyGraph.add(targetFilePath, dartFilePath);
       }
     }

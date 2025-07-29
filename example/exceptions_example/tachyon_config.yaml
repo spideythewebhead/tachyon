@@ -2,6 +2,6 @@ file_generation_paths:
   - "lib/example.dart"
 
 plugins:
-  - example
+  - exceptions_example
 
 generated_file_line_length: 100

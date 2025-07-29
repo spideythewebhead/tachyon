@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,6 +8,9 @@ import 'package:tachyon/src/core/exceptions.dart';
 import 'package:tachyon/tachyon.dart';
 
 class PackageResolver {
+  /// If successful returns [ResolvedPackages]
+  ///
+  /// This method throws
   static ResolvedPackages resolvePackages(String projectPath) {
     final File packageConfigFile = Tachyon.fileSystem.file(path.join(
       projectPath,
@@ -50,7 +54,7 @@ class PackageResolver {
   }
 }
 
-class ResolvedPackages {
+class ResolvedPackages with IterableMixin<PackageInfo> {
   ResolvedPackages({
     required Map<String, PackageInfo> packages,
   }) : _packages = packages;
@@ -58,6 +62,9 @@ class ResolvedPackages {
   final Map<String, PackageInfo> _packages;
 
   PackageInfo? operator [](String name) => _packages[name];
+
+  @override
+  Iterator<PackageInfo> get iterator => _packages.values.iterator;
 }
 
 class PackageInfo {
@@ -72,13 +79,59 @@ class PackageInfo {
     return PackageInfo(
       name: json['name'] as String,
       rootUri: Uri.parse(json['rootUri'] as String),
-      packageUri: json['packageUri'] == null ? null : Uri.parse(json['packageUri'] as String),
+      packageUri: Uri.parse(json['packageUri'] as String),
       languageVersion: json['languageVersion'] as String,
     );
   }
 
   final String name;
   final Uri rootUri;
-  final Uri? packageUri;
+  final Uri packageUri;
   final String languageVersion;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is PackageInfo &&
+            runtimeType == other.runtimeType &&
+            name == other.name &&
+            rootUri == other.rootUri &&
+            packageUri == other.packageUri &&
+            languageVersion == languageVersion;
+  }
+
+  @override
+  int get hashCode {
+    return Object.hash(
+      runtimeType,
+      name,
+      rootUri,
+      packageUri,
+      languageVersion,
+    );
+  }
+
+  /// Returns the absolute path for this package
+  ///
+  /// If [rootUri] is relative then is resolved against [projectPath]
+  String resolveAbsolutePath({required String projectPath}) {
+    String rootUriPath = rootUri.toFilePath();
+
+    if (path.isRelative(rootUriPath)) {
+      // relative paths also include ".dart_tool" so we need to delete 1 level
+      rootUriPath = rootUriPath.replaceFirst('..${path.separator}', '');
+      return path.join(projectPath, rootUriPath);
+    }
+
+    return rootUriPath;
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'name': name,
+      'rootUri': rootUri.toString(),
+      'packageUri': packageUri.toString(),
+      'languageVersion': languageVersion,
+    };
+  }
 }

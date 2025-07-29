@@ -29,6 +29,7 @@ void main() {
       final DeclarationFinder declarationFinder = DeclarationFinder(
         projectDirectoryPath: projectDir.path,
         parsedFilesRegistry: parsedFilesRegistry,
+        canVisitFile: (String filePath) => true,
       );
 
       final File mainDartFile = projectDir.childFile('main.dart');
@@ -79,6 +80,7 @@ class C {}
       final DeclarationFinder declarationFinder = DeclarationFinder(
         projectDirectoryPath: projectDir.path,
         parsedFilesRegistry: parsedFilesRegistry,
+        canVisitFile: (String filePath) => true,
       );
 
       final File mainDartFile = projectDir.childFile('main.dart');
@@ -132,6 +134,7 @@ class C {}
       final DeclarationFinder declarationFinder = DeclarationFinder(
         projectDirectoryPath: projectDir.path,
         parsedFilesRegistry: parsedFilesRegistry,
+        canVisitFile: (String filePath) => true,
       );
 
       final File mainDartFile = projectDir.childFile('main.dart')..createSync();
@@ -163,6 +166,7 @@ class C {}
       final DeclarationFinder declarationFinder = DeclarationFinder(
         projectDirectoryPath: projectDir.path,
         parsedFilesRegistry: parsedFilesRegistry,
+        canVisitFile: (String filePath) => true,
       );
 
       final File mainDartFile = projectDir.childFile('main.dart')..createSync();
@@ -187,6 +191,7 @@ class C {}
       final DeclarationFinder declarationFinder = DeclarationFinder(
         projectDirectoryPath: projectDir.path,
         parsedFilesRegistry: parsedFilesRegistry,
+        canVisitFile: (String filePath) => true,
       );
 
       final File mainDartFile = projectDir.childFile('main.dart')..createSync();
@@ -195,6 +200,26 @@ class C {}
           await declarationFinder.findClassOrEnumDeclarationByName(
         'MyClass',
         targetFilePath: mainDartFile.path,
+      );
+
+      expect(match, isNull);
+    });
+
+    test('Fails to find class if visit is not allowed', () async {
+      final ParsedFilesRegistry parsedFilesRegistry = ParsedFilesRegistry();
+      final DeclarationFinder declarationFinder = DeclarationFinder(
+        projectDirectoryPath: projectDir.path,
+        parsedFilesRegistry: parsedFilesRegistry,
+        canVisitFile: (String filePath) => false,
+      );
+
+      final File userDartFile = projectDir.childFile('user.dart')
+        ..writeAsStringSync('class User {}');
+
+      final FinderDeclarationMatch<NamedCompilationUnitMember>? match =
+          await declarationFinder.findClassOrEnumDeclarationByName(
+        'User',
+        targetFilePath: userDartFile.path,
       );
 
       expect(match, isNull);
