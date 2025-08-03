@@ -3,6 +3,17 @@ file_generation_paths:
   - "lib/src/main.dart"
   - "lib/src/models/**"
 
+# Use the package name found in "pubspec.yaml"
+external_packages:
+  # Can set your own packages
+  my_local_package:
+
+  # Can use 3rd party packages
+  provider:
+    # Can optionally provide globs to filter files
+    file_generation_paths:
+      - "lib/provider.dart"
+
 generated_file_line_length: 100
 
 # External plugins to use for code generation

@@ -1,3 +1,9 @@
+## 0.4.0-dev.1
+
+- [Experimental] Allow external packages to be indexed
+  - New option `external_packages` added in `tachyon_config.yaml`
+  - See [pubspec.yaml](./tachyon_config_example.yaml) for more information
+
 ## 0.4.0-dev.0
 
 - [Experimental] New command introduced `compile` [#68](https://github.com/spideythewebhead/tachyon/issues/68)
