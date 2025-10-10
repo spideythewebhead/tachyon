@@ -74,6 +74,8 @@ class Tachyon {
 
   late ResolvedPackages _resolvedPackages;
 
+  TachyonConfig? _cachedConfig;
+
   Completer<void>? _watchModeCompleter;
   StreamSubscription<WatchEvent>? _projectWatcherSubscription;
 
@@ -134,6 +136,7 @@ class Tachyon {
   Future<void> rebuild({
     bool deleteExistingGeneratedFiles = false,
   }) async {
+    _cachedConfig = null;
     _projectWatcherSubscription?.pause();
 
     await indexProject();
@@ -289,10 +292,15 @@ class Tachyon {
   ///
   /// If the file does not exists this method **throws**.
   TachyonConfig getConfig() {
+    if (_cachedConfig != null) {
+      return _cachedConfig!;
+    }
+
     final String yamlContent = Tachyon.fileSystem
         .file(path.join(projectDir.path, kTachyonConfigFileName)) //
         .readAsStringSync();
-    return TachyonConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
+
+    return _cachedConfig = TachyonConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
   }
 
   /// Goes through all the (import) dependencies of this [targetFilePath].
@@ -360,6 +368,10 @@ class Tachyon {
     }
 
     for (final PackageInfo package in _resolvedPackages) {
+      if (!getConfig().externalPackages.containsKey(package.name)) {
+        continue;
+      }
+
       final String packagePath = path.join(
           package.resolveAbsolutePath(projectPath: projectDir.path), package.packageUri.path);
       if (path.isWithin(packagePath, filePath)) {
