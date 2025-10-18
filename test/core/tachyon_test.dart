@@ -11,6 +11,7 @@ import 'package:tachyon/src/core/tachyon_config.dart';
 import 'package:tachyon/tachyon.dart';
 import 'package:test/test.dart';
 
+import '../set_dart_sdk_version.dart';
 import '../utils.dart';
 
 const String _kProjectDirPath = '/home/user/project';
@@ -18,6 +19,10 @@ const Logger _logger = NoOpLogger();
 
 void main() {
   late Directory projectDir;
+
+  setUpAll(() {
+    setDartSdkVersion();
+  });
 
   tearDown(() {
     projectDir.safelyRecursivelyDeleteSync();

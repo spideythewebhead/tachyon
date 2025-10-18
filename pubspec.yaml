@@ -11,18 +11,19 @@ environment:
   sdk: ">=3.1.0 <4.0.0"
 
 dependencies:
-  analyzer: ^6.0.0
-  analyzer_plugin: ^0.11.3
-  args: ^2.4.2
-  dart_style: ^2.3.3
+  analyzer: ">=7.0.0 <8.0.0"
+  analyzer_plugin: ^0.13.0
+  args: ^2.7.0
+  dart_style: ^3.1.0
   meta: ^1.9.0
   yaml: ^3.1.2
   glob: ^2.1.2
-  path: ^1.8.3
-  file: ">=6.0.0 <8.0.0"
-  stack_trace: ^1.10.0
-  watcher: ^1.1.0
+  path: ^1.9.0
+  file: ">=7.0.0 <8.0.0"
+  stack_trace: ^1.11.1
+  watcher: ^1.1.4
+  pub_semver: ^2.1.4
 
 dev_dependencies:
   lints: ^5.0.0
-  test: ^1.25.8
+  test: ^1.26.3
