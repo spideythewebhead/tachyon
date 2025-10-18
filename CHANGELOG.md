@@ -1,3 +1,11 @@
+## 0.4.0-dev.2
+
+- Fix incorrectly indexing unregistered projects [#79](https://github.com/spideythewebhead/tachyon/issues/79)
+- Fix not being able to use `compile` command when package lives in `pub cache` [#68](https://github.com/spideythewebhead/tachyon/issues/68#issuecomment-3392492977)
+- Use `formatter` options in `analysis_options.yaml` for generated files [#85](https://github.com/spideythewebhead/tachyon/issues/85)
+  - Deprecated `generated_file_line_length`
+- Update dependencies and dart sdk (3.2.9) [#81](https://github.com/spideythewebhead/tachyon/issues/81)
+
 ## 0.4.0-dev.1
 
 - [Experimental] Allow external packages to be indexed

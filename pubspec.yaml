@@ -1,6 +1,6 @@
 name: tachyon
 description: A code generation building tool.
-version: 0.4.0-dev.1
+version: 0.4.0-dev.2
 
 homepage: https://github.com/spideythewebhead/tachyon
 repository: https://github.com/spideythewebhead/tachyon
@@ -8,7 +8,7 @@ documentation: https://github.com/spideythewebhead/tachyon
 issue_tracker: https://github.com/spideythewebhead/tachyon/issues
 
 environment:
-  sdk: ">=3.1.0 <4.0.0"
+  sdk: ">=3.2.9 <4.0.0"
 
 dependencies:
   analyzer: ">=7.0.0 <8.0.0"
