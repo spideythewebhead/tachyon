@@ -4,9 +4,9 @@ file_generation_paths:
 external_packages:
   random_classes:
     file_generation_paths:
-      - 
 
 plugins:
   - external_packages_example
 
+# Deprecated. Should use "formatter.page_width" in "analysis_options.yaml"
 generated_file_line_length: 100

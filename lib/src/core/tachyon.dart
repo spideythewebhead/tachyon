@@ -8,6 +8,7 @@ import 'package:glob/glob.dart';
 import 'package:meta/meta.dart';
 import 'package:path/path.dart' as path;
 import 'package:tachyon/src/constants.dart';
+import 'package:tachyon/src/core/analysis_options.dart';
 import 'package:tachyon/src/core/code_writer.dart';
 import 'package:tachyon/src/core/dart_tool_package_info.dart';
 import 'package:tachyon/src/core/declaration_finder.dart';
@@ -76,6 +77,7 @@ class Tachyon {
   late ResolvedPackages _resolvedPackages;
 
   TachyonConfig? _cachedConfig;
+  AnalysisOptionsConfig? _cachedAnalysisOptions;
   DartFormatter? _cachedDartFormatter;
 
   Completer<void>? _watchModeCompleter;
@@ -138,10 +140,7 @@ class Tachyon {
   Future<void> rebuild({
     bool deleteExistingGeneratedFiles = false,
   }) async {
-    _cachedConfig = null;
-    _cachedDartFormatter = null;
-    _dependencyGraph.clear();
-
+    _clearCache();
     _projectWatcherSubscription?.pause();
 
     await indexProject();
@@ -308,9 +307,27 @@ class Tachyon {
     return _cachedConfig = TachyonConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
   }
 
+  AnalysisOptionsConfig getAnalysisOptions() {
+    if (_cachedAnalysisOptions != null) {
+      return _cachedAnalysisOptions!;
+    }
+
+    final String yamlContent = Tachyon.fileSystem
+        .file(path.join(projectDir.path, kAnalysisOptionsFileName)) //
+        .readAsStringSync();
+
+    return _cachedAnalysisOptions =
+        AnalysisOptionsConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
+  }
+
   DartFormatter getFormatter() {
+    final AnalysisOptionsConfig analysisOptions = getAnalysisOptions();
     return _cachedDartFormatter ??= DartFormatter(
-      pageWidth: getConfig().generatedFileLineLength,
+      pageWidth: analysisOptions.formatter.pageWidth ?? getConfig().generatedFileLineLength,
+      trailingCommas: switch (analysisOptions.formatter.trailingCommas) {
+        null => null,
+        FormatterTrailingCommasOption.preserve => TrailingCommas.preserve,
+      },
       languageVersion: dartSdkVersion,
     );
   }
@@ -611,6 +628,13 @@ class Tachyon {
     } catch (_) {
       // ignore any error
     }
+  }
+
+  void _clearCache() {
+    _cachedConfig = null;
+    _cachedDartFormatter = null;
+    _cachedAnalysisOptions = null;
+    _dependencyGraph.clear();
   }
 }
 
