@@ -31,7 +31,7 @@ class PackageResolver {
     return ResolvedPackages(packages: packages);
   }
 
-  static String? getTachyonMainDartPath(String projectPath) {
+  static String? getTachyonDirectoryPath(String projectPath) {
     final PackageInfo? packageInfo = resolvePackages(projectPath)['tachyon'];
     if (packageInfo == null) {
       return null;
@@ -39,7 +39,7 @@ class PackageResolver {
 
     final String filePath = packageInfo.rootUri.toFilePath();
     if (path.isAbsolute(filePath)) {
-      return path.join(filePath, 'bin', 'tachyon.dart');
+      return filePath;
     }
 
     return path.normalize(path.join(
@@ -48,9 +48,17 @@ class PackageResolver {
         kDartToolFolderName,
         filePath,
       )),
-      'bin',
-      'tachyon.dart',
     ));
+  }
+
+  static String? getTachyonMainDartPath(String projectPath) {
+    final String? directoryPath = getTachyonDirectoryPath(projectPath);
+
+    if (directoryPath == null) {
+      return null;
+    }
+
+    return path.join(directoryPath, 'bin', 'tachyon.dart');
   }
 }
 
