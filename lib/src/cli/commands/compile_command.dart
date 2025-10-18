@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:file/file.dart';
+import 'package:glob/glob.dart';
+import 'package:path/path.dart' as path;
 import 'package:tachyon/src/cli/commands/base_command.dart';
 import 'package:tachyon/src/cli/commands/mixins.dart';
 import 'package:tachyon/src/core/dart_tool_package_info.dart';
@@ -47,29 +49,92 @@ class CompileCommand extends BaseCommand with UtilsCommandMixin {
       exit(1);
     }
 
-    final String? tachyonMain = PackageResolver.getTachyonMainDartPath(_tachyon.projectDir.path);
-    if (tachyonMain == null) {
+    String? tachyonDirectoryPath =
+        PackageResolver.getTachyonDirectoryPath(_tachyon.projectDir.path);
+
+    if (tachyonDirectoryPath == null) {
       logger.error('Failed to find "tachyon.dart" to compile.');
       exit(1);
     }
 
-    final ProcessResult tachyonCompileResult = Process.runSync(
-      Platform.resolvedExecutable,
-      <String>[
-        'compile',
-        'exe',
-        '-DDART_SDK_VERSION=$dartSdkVersion',
-        tachyonMain,
-        '-o',
-        'ctachyon',
-      ],
-    );
+    void Function()? cleanUp;
 
-    if (tachyonCompileResult.exitCode != 0) {
-      logger.error('Failed to compile tachyon');
-      exit(compilationResult.exitCode);
+    if (path.isAbsolute(tachyonDirectoryPath) && tachyonDirectoryPath.contains('.pub-cache')) {
+      tachyonDirectoryPath = Tachyon.fileSystem
+          .directory(tachyonDirectoryPath)
+          .cloneTachyonToTemporary(Tachyon.fileSystem.systemTempDirectory.path)
+          .path;
+
+      cleanUp =
+          () => Tachyon.fileSystem.directory(tachyonDirectoryPath).deleteSync(recursive: true);
     }
 
-    logger.info('Compiled tachyon. Execute "./ctachyon --help" to verify installation');
+    try {
+      final ProcessResult tachyonCompileResult = Process.runSync(
+        Platform.resolvedExecutable,
+        <String>[
+          'compile',
+          'exe',
+          '-DDART_SDK_VERSION=$dartSdkVersion',
+          path.join(tachyonDirectoryPath, 'bin', 'tachyon.dart'),
+          '-o',
+          'ctachyon',
+        ],
+      );
+
+      if (tachyonCompileResult.exitCode != 0) {
+        logger
+          ..error('Failed to compile tachyon')
+          ..error(tachyonCompileResult.stderr);
+        exit(compilationResult.exitCode);
+      }
+
+      logger.info('Compiled tachyon. Execute "./ctachyon --help" to verify installation');
+    } finally {
+      cleanUp?.call();
+    }
+  }
+}
+
+extension on Directory {
+  static final List<Glob> _ignorePaths = <Glob>[
+    Glob('.git', recursive: true),
+    Glob('.fvm', recursive: true),
+    Glob('.dart_tool', recursive: true),
+    Glob('test', recursive: true),
+    Glob('example', recursive: true)
+  ];
+
+  Directory cloneTachyonToTemporary(String to) {
+    final String inDirectoryPath = absolute.path;
+
+    // Create root folder
+    final Directory outDirectory = Tachyon.fileSystem
+        .directory(path.join(to, path.basename(inDirectoryPath)))
+      ..createSync(recursive: true);
+
+    for (final FileSystemEntity file in listSync(recursive: true, followLinks: false)) {
+      final String pathRelativeToInDirectory = path.relative(file.path, from: inDirectoryPath);
+      final String newPath = path.join(outDirectory.path, pathRelativeToInDirectory);
+
+      if (_ignorePaths.any((Glob g) => g.matches(pathRelativeToInDirectory))) {
+        continue;
+      }
+
+      switch (file) {
+        case Directory():
+          Tachyon.fileSystem.directory(newPath).createSync(recursive: true);
+          break;
+
+        case File():
+          file.copySync(newPath);
+          break;
+
+        case Link():
+          break;
+      }
+    }
+
+    return outDirectory.absolute;
   }
 }
