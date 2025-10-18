@@ -8,6 +8,7 @@ import 'package:tachyon/tachyon.dart';
 import 'package:test/test.dart';
 
 import '../plugin_project_creator.dart';
+import '../set_dart_sdk_version.dart';
 import '../test_project_creator.dart';
 import '../utils.dart';
 
@@ -16,6 +17,10 @@ const Logger _logger = NoOpLogger();
 
 void main() {
   late Directory projectDir;
+
+  setUpAll(() {
+    setDartSdkVersion();
+  });
 
   tearDownAll(() {
     projectDir.safelyRecursivelyDeleteSync();

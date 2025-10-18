@@ -15,7 +15,10 @@ import 'package:tachyon/tachyon.dart';
 import 'package:yaml/yaml.dart';
 
 // Generates the entrypoint for the tachyon plugins
-String _pluginMainDartTemplate(List<ExternalPluginConfig> plugins) {
+String _pluginMainDartTemplate(
+  List<ExternalPluginConfig> plugins, {
+  required DartFormatter formatter,
+}) {
   String pluginsImportCode = <String>[
     for (final ExternalPluginConfig plugin in plugins)
       "import 'package:${plugin.name}/${plugin.codeGenerator.file}';",
@@ -89,7 +92,7 @@ await Future.wait(<Future<Isolate>>[
 
 ''';
 
-  return DartFormatter().format('''
+  return formatter.format('''
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
@@ -215,7 +218,9 @@ Future<void> registerPlugins({
 
   // Clear resources when Tachyon is disposed
   tachyon.addDisposeHook(() {
-    apiMessageSubscription.cancel();
+    apiMessageSubscription.cancel().catchError((Object error, StackTrace stackTrace) {
+      tachyon.logger.error(error, stackTrace);
+    }).ignore();
     mainIsolateReceivePort.close();
     isolate.kill(priority: Isolate.immediate);
   });
@@ -416,7 +421,10 @@ _CreatePluginsMainDartResult _createPluginsMainDart(Tachyon tachyon) {
     'main.dart',
   ))
     ..createSync(recursive: true);
-  dartProgram.writeAsStringSync(_pluginMainDartTemplate(validExternalPluginsConfigs));
+  dartProgram.writeAsStringSync(_pluginMainDartTemplate(
+    validExternalPluginsConfigs,
+    formatter: tachyon.getFormatter(),
+  ));
 
   return (
     pluginsMain: dartProgram,

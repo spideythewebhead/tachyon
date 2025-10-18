@@ -18,6 +18,7 @@ import 'package:tachyon/src/core/parse_file_extension.dart';
 import 'package:tachyon/src/core/parsed_file_data.dart';
 import 'package:tachyon/src/core/parsed_files_registry.dart';
 import 'package:tachyon/src/core/tachyon_config.dart';
+import 'package:tachyon/src/dart_version.dart';
 import 'package:tachyon/src/extensions/extensions.dart';
 import 'package:tachyon/src/logger/console_logger.dart';
 import 'package:tachyon/src/logger/logger.dart';
@@ -75,6 +76,7 @@ class Tachyon {
   late ResolvedPackages _resolvedPackages;
 
   TachyonConfig? _cachedConfig;
+  DartFormatter? _cachedDartFormatter;
 
   Completer<void>? _watchModeCompleter;
   StreamSubscription<WatchEvent>? _projectWatcherSubscription;
@@ -137,6 +139,9 @@ class Tachyon {
     bool deleteExistingGeneratedFiles = false,
   }) async {
     _cachedConfig = null;
+    _cachedDartFormatter = null;
+    _dependencyGraph.clear();
+
     _projectWatcherSubscription?.pause();
 
     await indexProject();
@@ -301,6 +306,13 @@ class Tachyon {
         .readAsStringSync();
 
     return _cachedConfig = TachyonConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
+  }
+
+  DartFormatter getFormatter() {
+    return _cachedDartFormatter ??= DartFormatter(
+      pageWidth: getConfig().generatedFileLineLength,
+      languageVersion: dartSdkVersion,
+    );
   }
 
   /// Goes through all the (import) dependencies of this [targetFilePath].
@@ -515,9 +527,7 @@ class Tachyon {
       } catch (_) {}
     } else {
       try {
-        await Tachyon.fileSystem.file(outputFilePath).writeAsString(DartFormatter(
-              pageWidth: pluginConfig.generatedFileLineLength,
-            ).format(content));
+        await Tachyon.fileSystem.file(outputFilePath).writeAsString(getFormatter().format(content));
       } on FormatterException catch (e) {
         logger
           ..error('Invalid code generation for $relativeFilePath')

@@ -4,6 +4,7 @@ import 'package:file/file.dart';
 import 'package:tachyon/src/cli/commands/base_command.dart';
 import 'package:tachyon/src/cli/commands/mixins.dart';
 import 'package:tachyon/src/core/dart_tool_package_info.dart';
+import 'package:tachyon/src/dart_version.dart';
 import 'package:tachyon/src/plugin/register_plugins.dart';
 import 'package:tachyon/tachyon.dart';
 
@@ -52,13 +53,17 @@ class CompileCommand extends BaseCommand with UtilsCommandMixin {
       exit(1);
     }
 
-    final ProcessResult tachyonCompileResult = Process.runSync('dart', <String>[
-      'compile',
-      'exe',
-      tachyonMain,
-      '-o',
-      'ctachyon',
-    ]);
+    final ProcessResult tachyonCompileResult = Process.runSync(
+      Platform.resolvedExecutable,
+      <String>[
+        'compile',
+        'exe',
+        '-DDART_SDK_VERSION=$dartSdkVersion',
+        tachyonMain,
+        '-o',
+        'ctachyon',
+      ],
+    );
 
     if (tachyonCompileResult.exitCode != 0) {
       logger.error('Failed to compile tachyon');
