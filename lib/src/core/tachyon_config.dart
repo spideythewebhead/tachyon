@@ -38,7 +38,10 @@ class TachyonConfig {
 
   final List<Glob> fileGenerationPaths;
   final Map<String, ExternalPackageConfig> externalPackages;
+
+  @Deprecated('Should use "formatter.page_width" in "analysis_options.yaml"')
   final int generatedFileLineLength;
+
   final List<String> plugins;
 
   Map<String, dynamic> toJson() {

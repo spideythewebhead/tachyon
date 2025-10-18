@@ -4,4 +4,5 @@ file_generation_paths:
 plugins:
   - exceptions_example
 
+# Deprecated. Should use "formatter.page_width" in "analysis_options.yaml"
 generated_file_line_length: 100

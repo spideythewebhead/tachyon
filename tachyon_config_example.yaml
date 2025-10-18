@@ -14,6 +14,7 @@ external_packages:
     file_generation_paths:
       - "lib/provider.dart"
 
+# Deprecated. Should use "formatter.page_width" in "analysis_options.yaml"
 generated_file_line_length: 100
 
 # External plugins to use for code generation

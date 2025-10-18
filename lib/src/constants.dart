@@ -9,6 +9,7 @@ final String kNewLine = () {
 }();
 
 const String kPubspecYamlFileName = 'pubspec.yaml';
+const String kAnalysisOptionsFileName = 'analysis_options.yaml';
 const String kTachyonConfigFileName = 'tachyon_config.yaml';
 const String kTachyonPluginConfigFileName = 'tachyon_plugin_config.yaml';
 const String kDartToolFolderName = '.dart_tool';
