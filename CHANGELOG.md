@@ -1,3 +1,7 @@
+## 0.4.0-dev.3
+
+- Fix not running `dart pub get` when cloning tachyon from pub cache [#88](https://github.com/spideythewebhead/tachyon/issues/88
+
 ## 0.4.0-dev.2
 
 - Fix incorrectly indexing unregistered projects [#79](https://github.com/spideythewebhead/tachyon/issues/79)
