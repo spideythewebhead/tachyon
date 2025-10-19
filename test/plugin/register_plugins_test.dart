@@ -76,12 +76,14 @@ class Test {}
 
       expect(
         Tachyon.fileSystem
-            .file(path.join(
-              pluginsTesterProjectDir.path,
-              kDartToolFolderName,
-              'tachyon',
-              'main.dart',
-            ))
+            .file(
+              path.join(
+                pluginsTesterProjectDir.path,
+                kDartToolFolderName,
+                'tachyon',
+                'main.dart',
+              ),
+            )
             .existsSync(),
         isTrue,
       );

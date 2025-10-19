@@ -12,23 +12,29 @@ class CliRunner extends CommandRunner<void> {
   static const LocalFileSystem _fileSystem = LocalFileSystem();
 
   CliRunner([IOSink? sink])
-      : logger = ConsoleLogger(sink),
-        super('tachyon', 'Tachyon code generator.'.bold()) {
-    addCommand(BuildCommand(
-      logger: logger,
-      directory: _fileSystem.currentDirectory,
-    ));
-
-    addCommand(WatchCommand(
-      logger: logger,
-      directory: _fileSystem.currentDirectory,
-    ));
-
-    if (!isAot) {
-      addCommand(CompileCommand(
+    : logger = ConsoleLogger(sink),
+      super('tachyon', 'Tachyon code generator.'.bold()) {
+    addCommand(
+      BuildCommand(
         logger: logger,
         directory: _fileSystem.currentDirectory,
-      ));
+      ),
+    );
+
+    addCommand(
+      WatchCommand(
+        logger: logger,
+        directory: _fileSystem.currentDirectory,
+      ),
+    );
+
+    if (!isAot) {
+      addCommand(
+        CompileCommand(
+          logger: logger,
+          directory: _fileSystem.currentDirectory,
+        ),
+      );
     }
   }
 

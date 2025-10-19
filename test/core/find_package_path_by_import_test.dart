@@ -71,11 +71,13 @@ void main() {
           currentDirectoryPath: '',
           uri: 'package:tachyon/tachyon.dart',
         ),
-        equals(path.join(
-          '/home/user/.pub-cache/hosted/pub.dev/tachyon-0.0.1',
-          'lib',
-          'tachyon.dart',
-        )),
+        equals(
+          path.join(
+            '/home/user/.pub-cache/hosted/pub.dev/tachyon-0.0.1',
+            'lib',
+            'tachyon.dart',
+          ),
+        ),
       );
     });
 
@@ -102,13 +104,15 @@ void main() {
           currentDirectoryPath: '',
           uri: 'package:mypackage/mypackage.dart',
         ),
-        equals(path.join(
-          _kProjectDir,
-          'packages',
-          'mypackage',
-          'lib',
-          'mypackage.dart',
-        )),
+        equals(
+          path.join(
+            _kProjectDir,
+            'packages',
+            'mypackage',
+            'lib',
+            'mypackage.dart',
+          ),
+        ),
       );
     });
 

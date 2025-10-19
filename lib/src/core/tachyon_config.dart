@@ -25,7 +25,7 @@ class TachyonConfig {
                 entry.key as String: ExternalPackageConfig.fromJson(
                   entry.key as String,
                   entry.value ?? const <dynamic, dynamic>{},
-                )
+                ),
             },
       generatedFileLineLength: json['generated_file_line_length'] as int? ?? 80,
       plugins: json['plugins'] == null
@@ -53,7 +53,7 @@ class TachyonConfig {
       'generated_file_line_length': generatedFileLineLength,
       'plugins': <String>[
         for (final String plugin in plugins) plugin,
-      ]
+      ],
     };
   }
 }

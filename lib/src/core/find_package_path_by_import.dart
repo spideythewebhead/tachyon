@@ -34,30 +34,35 @@ Future<String?> findDartFileFromDirectiveUri({
 
   // relative directive uri
   if (!uri.startsWith(_packagePrefix)) {
-    return path.normalize(path.join(
-      currentDirectoryPath,
-      uri.toString(),
-    ));
+    return path.normalize(
+      path.join(
+        currentDirectoryPath,
+        uri.toString(),
+      ),
+    );
   }
 
-  final File packageConfigFile = Tachyon.fileSystem
-      .file(path.join(projectDirectoryPath, kDartToolFolderName, 'package_config.json'));
+  final File packageConfigFile = Tachyon.fileSystem.file(
+    path.join(projectDirectoryPath, kDartToolFolderName, 'package_config.json'),
+  );
 
   if (!await packageConfigFile.exists()) {
     throw const DartToolPackageConfigNotFoundException();
   }
 
-  final Map<dynamic, dynamic> packageConfigJson =
-      await packageConfigFile.readAsString().then((String value) => jsonDecode(value));
+  final Map<dynamic, dynamic> packageConfigJson = await packageConfigFile.readAsString().then(
+    (String value) => jsonDecode(value),
+  );
 
   final List<PackageInfo> packages = <PackageInfo>[
     for (final Map<dynamic, dynamic> packageJson in packageConfigJson['packages'])
-      PackageInfo.fromJson(packageJson)
+      PackageInfo.fromJson(packageJson),
   ];
 
   final String packageName = uri.substring(_packagePrefix.length, uri.indexOf('/'));
-  final PackageInfo? targetPackage =
-      packages.firstWhereOrNull((PackageInfo package) => package.name == packageName);
+  final PackageInfo? targetPackage = packages.firstWhereOrNull(
+    (PackageInfo package) => package.name == packageName,
+  );
 
   if (targetPackage == null) {
     throw PackageNotFoundException(packageName);

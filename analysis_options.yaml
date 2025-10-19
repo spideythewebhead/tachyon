@@ -12,5 +12,9 @@ linter:
     - discarded_futures
 
 analyzer:
-  exclude: 
+  exclude:
     - test/**/*.bootstrap.*.dart
+
+formatter:
+  page_width: 100
+  trailing_commas: preserve

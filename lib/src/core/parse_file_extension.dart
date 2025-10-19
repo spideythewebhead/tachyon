@@ -34,22 +34,24 @@ class ParseException implements Exception {
 
   @override
   String toString() {
-    return errors.map((AnalysisError error) {
-      final StringBuffer buffer = StringBuffer()..writeln();
-      buffer
-        ..writeln('Severity: ${error.severity.name.capitalize().red()}')
-        ..write('File: ')
-        ..writeln(error.source.fullName.bold())
-        ..write('Error: ')
-        ..writeln(error.message.red());
-      if (error.correction != null) {
-        buffer
-          ..write('Possible solution: ')
-          ..writeln(error.correctionMessage!.green());
-      }
+    return errors
+        .map((AnalysisError error) {
+          final StringBuffer buffer = StringBuffer()..writeln();
+          buffer
+            ..writeln('Severity: ${error.severity.name.capitalize().red()}')
+            ..write('File: ')
+            ..writeln(error.source.fullName.bold())
+            ..write('Error: ')
+            ..writeln(error.message.red());
+          if (error.correction != null) {
+            buffer
+              ..write('Possible solution: ')
+              ..writeln(error.correctionMessage!.green());
+          }
 
-      return buffer.toString();
-    }).join('\n');
+          return buffer.toString();
+        })
+        .join('\n');
   }
 }
 

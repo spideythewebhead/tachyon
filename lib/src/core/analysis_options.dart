@@ -28,8 +28,7 @@ class FormatterOptionsConfig {
 }
 
 enum FormatterTrailingCommasOption {
-  preserve,
-  ;
+  preserve;
 
   static FormatterTrailingCommasOption? fromString(String? s) {
     if (s == 'preserve') {

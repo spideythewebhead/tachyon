@@ -160,7 +160,8 @@ class AnnotationValueExtractor {
 
   NamedExpression? _findNamedExpressionByName(String name) {
     return _arguments.firstWhereOrNull((Expression expression) {
-      return expression is NamedExpression && expression.name.label.name == name;
-    }) as NamedExpression?;
+          return expression is NamedExpression && expression.name.label.name == name;
+        })
+        as NamedExpression?;
   }
 }

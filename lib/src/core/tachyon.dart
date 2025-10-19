@@ -52,8 +52,8 @@ class Tachyon {
   Tachyon({
     required this.projectDir,
     final Logger? logger,
-  })  : _watcher = DirectoryWatcher(projectDir.path),
-        logger = logger ?? ConsoleLogger();
+  }) : _watcher = DirectoryWatcher(projectDir.path),
+       logger = logger ?? ConsoleLogger();
 
   final Directory projectDir;
   final Logger logger;
@@ -199,44 +199,51 @@ class Tachyon {
         continue;
       }
 
-      final Directory directory =
-          Tachyon.fileSystem.directory(package.resolveAbsolutePath(projectPath: projectDir.path));
+      final Directory directory = Tachyon.fileSystem.directory(
+        package.resolveAbsolutePath(projectPath: projectDir.path),
+      );
       logger.info('~ External package "$packageName" found');
 
-      filesToBeIndexed.addAll(directory
-          .listSync(recursive: true) //
-          .where((FileSystemEntity entity) {
-        if (entity is! File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
-          return false;
-        }
+      filesToBeIndexed.addAll(
+        directory
+            .listSync(recursive: true) //
+            .where((FileSystemEntity entity) {
+              if (entity is! File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
+                return false;
+              }
 
-        final List<Glob> globs = config.externalPackages[packageName]!.fileGenerationPaths;
+              final List<Glob> globs = config.externalPackages[packageName]!.fileGenerationPaths;
 
-        return globs.isEmpty ||
-            globs.any((Glob glob) {
-              return glob.matches(
-                path.relative(entity.absolute.path, from: directory.path),
-              );
-            });
-      }).cast<File>());
+              return globs.isEmpty ||
+                  globs.any((Glob glob) {
+                    return glob.matches(
+                      path.relative(entity.absolute.path, from: directory.path),
+                    );
+                  });
+            })
+            .cast<File>(),
+      );
     }
 
-    filesToBeIndexed.addAll(projectDir
-        .listSync(recursive: true) //
-        .where((FileSystemEntity entity) {
-      if (entity is! File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
-        return false;
-      }
+    filesToBeIndexed.addAll(
+      projectDir
+          .listSync(recursive: true) //
+          .where((FileSystemEntity entity) {
+            if (entity is! File || !_dartFileNameMatcher.hasMatch(path.basename(entity.path))) {
+              return false;
+            }
 
-      final List<Glob> globs = config.fileGenerationPaths;
+            final List<Glob> globs = config.fileGenerationPaths;
 
-      return globs.isEmpty ||
-          config.fileGenerationPaths.any((Glob glob) {
-            return glob.matches(
-              path.relative(entity.absolute.path, from: projectDir.absolute.path),
-            );
-          });
-    }).cast<File>());
+            return globs.isEmpty ||
+                config.fileGenerationPaths.any((Glob glob) {
+                  return glob.matches(
+                    path.relative(entity.absolute.path, from: projectDir.absolute.path),
+                  );
+                });
+          })
+          .cast<File>(),
+    );
 
     for (final File file in filesToBeIndexed) {
       final String targetFilePath = file.absolute.path;
@@ -259,7 +266,8 @@ class Tachyon {
 
     stopwatch.stop();
     logger.info(
-        '~ Indexed ${_filesPathsRegistry.length} files in ${stopwatch.elapsedMilliseconds}ms');
+      '~ Indexed ${_filesPathsRegistry.length} files in ${stopwatch.elapsedMilliseconds}ms',
+    );
   }
 
   /// Builds the project.
@@ -316,8 +324,9 @@ class Tachyon {
         .file(path.join(projectDir.path, kAnalysisOptionsFileName)) //
         .readAsStringSync();
 
-    return _cachedAnalysisOptions =
-        AnalysisOptionsConfig.fromJson(loadYaml(yamlContent) as Map<dynamic, dynamic>);
+    return _cachedAnalysisOptions = AnalysisOptionsConfig.fromJson(
+      loadYaml(yamlContent) as Map<dynamic, dynamic>,
+    );
   }
 
   DartFormatter getFormatter() {
@@ -402,7 +411,9 @@ class Tachyon {
       }
 
       final String packagePath = path.join(
-          package.resolveAbsolutePath(projectPath: projectDir.path), package.packageUri.path);
+        package.resolveAbsolutePath(projectPath: projectDir.path),
+        package.packageUri.path,
+      );
       if (path.isWithin(packagePath, filePath)) {
         return true;
       }
@@ -533,8 +544,9 @@ class Tachyon {
         hook(compilationUnit, targetFilePath),
     ];
     codeWriter.write(
-      await Future.wait(futures)
-          .then((List<String?> results) => results.whereType<String>().join(kNewLine)),
+      await Future.wait(
+        futures,
+      ).then((List<String?> results) => results.whereType<String>().join(kNewLine)),
     );
 
     final String content = codeWriter.content.trimRight();
@@ -559,7 +571,8 @@ class Tachyon {
     if (reportTime) {
       stopwatch!.stop();
       logger.info(
-          '$indent~ Finished building $relativeFilePath in ${stopwatch.elapsed.inMilliseconds}ms');
+        '$indent~ Finished building $relativeFilePath in ${stopwatch.elapsed.inMilliseconds}ms',
+      );
     }
   }
 
@@ -592,7 +605,7 @@ class Tachyon {
   }) async {
     final List<_DependentAndWeight> dependents = <_DependentAndWeight>[
       for (final MapEntry<String, int> entry in calculateDependentsWeights(targetFilePath).entries)
-        _DependentAndWeight(name: entry.key, weight: entry.value)
+        _DependentAndWeight(name: entry.key, weight: entry.value),
     ]..sort();
     if (dependents.isEmpty) {
       return;
@@ -615,8 +628,10 @@ class Tachyon {
     final Iterable<File> generatedFiles = projectDir
         .listSync(recursive: true) //
         .where((FileSystemEntity entity) {
-      return entity is File && _dartGeneratedFileNameMatcher.hasMatch(path.basename(entity.path));
-    }).cast<File>();
+          return entity is File &&
+              _dartGeneratedFileNameMatcher.hasMatch(path.basename(entity.path));
+        })
+        .cast<File>();
 
     try {
       await Future.wait<void>(

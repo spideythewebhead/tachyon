@@ -23,7 +23,7 @@ abstract class ArgumentOption {
     final List<ArgumentOption> arguments,
   ) {
     return <ArgumentOption, dynamic>{
-      for (final ArgumentOption value in arguments) value: results[value.name] ?? value.defaultsTo
+      for (final ArgumentOption value in arguments) value: results[value.name] ?? value.defaultsTo,
     };
   }
 }

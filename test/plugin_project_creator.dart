@@ -35,10 +35,7 @@ dependencies:
     path: ../..
 ''');
 
-  projectDir
-      .childDirectory('lib')
-      .childDirectory('src')
-      .childFile('generator.dart')
+  projectDir.childDirectory('lib').childDirectory('src').childFile('generator.dart')
     ..createSync(recursive: true)
     ..writeAsStringSync('''
 import 'dart:async';
@@ -66,10 +63,7 @@ annotations:
   - $annotationName
 ''');
 
-  projectDir
-      .childDirectory('lib')
-      .childFile('$pluginName.dart')
-      .writeAsStringSync('''
+  projectDir.childDirectory('lib').childFile('$pluginName.dart').writeAsStringSync('''
 library;
 
 class MyAnnotation {

@@ -12,11 +12,13 @@ class PackageResolver {
   ///
   /// This method throws
   static ResolvedPackages resolvePackages(String projectPath) {
-    final File packageConfigFile = Tachyon.fileSystem.file(path.join(
-      projectPath,
-      kDartToolFolderName,
-      'package_config.json',
-    ));
+    final File packageConfigFile = Tachyon.fileSystem.file(
+      path.join(
+        projectPath,
+        kDartToolFolderName,
+        'package_config.json',
+      ),
+    );
 
     if (!packageConfigFile.existsSync()) {
       throw const DartToolPackageConfigNotFoundException();
@@ -25,7 +27,7 @@ class PackageResolver {
     final Map<String, dynamic> packageFileJson = json.decode(packageConfigFile.readAsStringSync());
     final Map<String, PackageInfo> packages = <String, PackageInfo>{
       for (final Map<dynamic, dynamic> packageJson in packageFileJson['packages'])
-        packageJson['name'] as String: PackageInfo.fromJson(packageJson)
+        packageJson['name'] as String: PackageInfo.fromJson(packageJson),
     };
 
     return ResolvedPackages(packages: packages);
@@ -42,13 +44,17 @@ class PackageResolver {
       return filePath;
     }
 
-    return path.normalize(path.join(
-      path.normalize(path.join(
-        projectPath,
-        kDartToolFolderName,
-        filePath,
-      )),
-    ));
+    return path.normalize(
+      path.join(
+        path.normalize(
+          path.join(
+            projectPath,
+            kDartToolFolderName,
+            filePath,
+          ),
+        ),
+      ),
+    );
   }
 
   static String? getTachyonMainDartPath(String projectPath) {

@@ -16,9 +16,9 @@ class BuildCommand extends BaseCommand with UtilsCommandMixin {
     required super.logger,
     required this.directory,
   }) : _tachyon = Tachyon(
-          projectDir: directory,
-          logger: logger,
-        ) {
+         projectDir: directory,
+         logger: logger,
+       ) {
     argParser.addArgumentOptions(GenerateArgumentOption.options);
   }
 
@@ -41,12 +41,14 @@ class BuildCommand extends BaseCommand with UtilsCommandMixin {
     File pluginsMain;
 
     if (isAot) {
-      pluginsMain = Tachyon.fileSystem.file(path.join(
-        _tachyon.projectDir.path,
-        kDartToolFolderName,
-        'tachyon',
-        'main.aot',
-      ));
+      pluginsMain = Tachyon.fileSystem.file(
+        path.join(
+          _tachyon.projectDir.path,
+          kDartToolFolderName,
+          'tachyon',
+          'main.aot',
+        ),
+      );
 
       if (!pluginsMain.existsSync()) {
         logger.error('Failed to find ${pluginsMain.path}. Ensure you run tachyon compile first');
@@ -74,8 +76,9 @@ class BuildCommand extends BaseCommand with UtilsCommandMixin {
 
     await _tachyon.indexProject();
     return await _tachyon.buildProject(
-      deleteExistingGeneratedFiles:
-          argResults!.getValue<bool>(GenerateArgumentOption.deleteExistingGeneratedFiles),
+      deleteExistingGeneratedFiles: argResults!.getValue<bool>(
+        GenerateArgumentOption.deleteExistingGeneratedFiles,
+      ),
     );
   }
 
