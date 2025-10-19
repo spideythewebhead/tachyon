@@ -8,7 +8,7 @@ documentation: https://github.com/spideythewebhead/tachyon
 issue_tracker: https://github.com/spideythewebhead/tachyon/issues
 
 environment:
-  sdk: ">=3.2.9 <4.0.0"
+  sdk: ">=3.9.2 <4.0.0"
 
 dependencies:
   analyzer: ">=7.0.0 <8.0.0"

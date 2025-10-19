@@ -11,9 +11,9 @@ class DeclarationFinder {
     required final String projectDirectoryPath,
     required final ParsedFilesRegistry parsedFilesRegistry,
     required final bool Function(String filePath) canVisitFile,
-  })  : _projectDirectoryPath = projectDirectoryPath,
-        _parsedFilesRegistry = parsedFilesRegistry,
-        _canVisitFile = canVisitFile;
+  }) : _projectDirectoryPath = projectDirectoryPath,
+       _parsedFilesRegistry = parsedFilesRegistry,
+       _canVisitFile = canVisitFile;
 
   final String _projectDirectoryPath;
   final ParsedFilesRegistry _parsedFilesRegistry;
@@ -110,8 +110,11 @@ class DeclarationFinder {
       // If the declaration does not exists in the file, check if all the exports of the file
       final FinderDeclarationMatch<T>? match = await _recursivelyExploreExports(
         name,
-        currentDirectoryPath:
-            Tachyon.fileSystem.file(parsedFileData.absolutePath).parent.absolute.path,
+        currentDirectoryPath: Tachyon.fileSystem
+            .file(parsedFileData.absolutePath)
+            .parent
+            .absolute
+            .path,
         compilationUnit: parsedFileData.compilationUnit,
       );
       if (match != null) {
@@ -123,7 +126,7 @@ class DeclarationFinder {
   }
 
   Future<FinderDeclarationMatch<T>?>
-      _recursivelyExploreExports<T extends NamedCompilationUnitMember>(
+  _recursivelyExploreExports<T extends NamedCompilationUnitMember>(
     String name, {
     required String currentDirectoryPath,
     required CompilationUnit compilationUnit,

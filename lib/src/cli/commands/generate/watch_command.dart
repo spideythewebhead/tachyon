@@ -17,9 +17,9 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
     required super.logger,
     required this.directory,
   }) : _tachyon = Tachyon(
-          projectDir: directory,
-          logger: logger,
-        ) {
+         projectDir: directory,
+         logger: logger,
+       ) {
     argParser.addArgumentOptions(GenerateArgumentOption.options);
   }
 
@@ -55,12 +55,14 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
       ..lineMode = false;
 
     if (isAot) {
-      final File pluginsMain = Tachyon.fileSystem.file(path.join(
-        _tachyon.projectDir.path,
-        kDartToolFolderName,
-        'tachyon',
-        'main.aot',
-      ));
+      final File pluginsMain = Tachyon.fileSystem.file(
+        path.join(
+          _tachyon.projectDir.path,
+          kDartToolFolderName,
+          'tachyon',
+          'main.aot',
+        ),
+      );
 
       if (!pluginsMain.existsSync()) {
         logger.error('Failed to find ${pluginsMain.path}. Ensure you run tachyon compile first');
@@ -74,8 +76,9 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
 
       await _tachyon.watchProject(
         onReady: () => logger.debug('Listening'),
-        deleteExistingGeneratedFiles:
-            argResults!.getValue<bool>(GenerateArgumentOption.deleteExistingGeneratedFiles),
+        deleteExistingGeneratedFiles: argResults!.getValue<bool>(
+          GenerateArgumentOption.deleteExistingGeneratedFiles,
+        ),
       );
 
       return;
@@ -109,8 +112,9 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
         );
 
         await _tachyon.rebuild(
-          deleteExistingGeneratedFiles:
-              argResults!.getValue<bool>(GenerateArgumentOption.deleteExistingGeneratedFiles),
+          deleteExistingGeneratedFiles: argResults!.getValue<bool>(
+            GenerateArgumentOption.deleteExistingGeneratedFiles,
+          ),
         );
 
         logger.debug('Restart ended..');
@@ -140,8 +144,9 @@ class WatchCommand extends BaseCommand with UtilsCommandMixin {
           ..debug('Listening')
           ..info('TIP: Press "R" to restart tachyon');
       },
-      deleteExistingGeneratedFiles:
-          argResults!.getValue<bool>(GenerateArgumentOption.deleteExistingGeneratedFiles),
+      deleteExistingGeneratedFiles: argResults!.getValue<bool>(
+        GenerateArgumentOption.deleteExistingGeneratedFiles,
+      ),
     );
   }
 

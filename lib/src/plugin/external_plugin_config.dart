@@ -9,7 +9,8 @@ class ExternalPluginConfig {
     return ExternalPluginConfig(
       name: json['name'] as String,
       codeGenerator: ExternalPluginCodeGeneratorConfig.fromJson(
-          json['code_generator'] as Map<dynamic, dynamic>),
+        json['code_generator'] as Map<dynamic, dynamic>,
+      ),
       annotations: <String>[
         for (final dynamic annotation in (json['annotations'] as List<dynamic>)) annotation,
       ],

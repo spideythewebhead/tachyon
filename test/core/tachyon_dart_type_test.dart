@@ -4,9 +4,11 @@ import 'package:test/test.dart';
 void main() {
   group('basic types', () {
     test('isInt', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 int variable = 0;
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -17,9 +19,11 @@ int variable = 0;
     });
 
     test('isDouble', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 double variable = 0.0;
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -30,9 +34,11 @@ double variable = 0.0;
     });
 
     test('isNum', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 num variable = 0;
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -43,9 +49,11 @@ num variable = 0;
     });
 
     test('isString', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 String variable = '';
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -56,9 +64,11 @@ String variable = '';
     });
 
     test('isDynamic', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 dynamic variable;
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -68,9 +78,11 @@ dynamic variable;
     });
 
     test('isBool', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 bool variable = false;
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -81,9 +93,11 @@ bool variable = false;
     });
 
     test('isDuration', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 Duration variable = Duration(days: 1);
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -93,9 +107,11 @@ Duration variable = Duration(days: 1);
     });
 
     test('isDateTime', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 DateTime variable = DateTime(days: 1);
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -105,9 +121,11 @@ DateTime variable = DateTime(days: 1);
     });
 
     test('isUri', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 Uri variable = Uri.parse('https://google.com');
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -117,9 +135,11 @@ Uri variable = Uri.parse('https://google.com');
     });
 
     test('isList', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 List<int> variable = <int>[1,2,3];
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -130,9 +150,11 @@ List<int> variable = <int>[1,2,3];
     });
 
     test('isMap', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 Map<int, String> variable = <int, String>[1,2,3];
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -145,9 +167,11 @@ Map<int, String> variable = <int, String>[1,2,3];
 
   group('nullability', () {
     test('isNullable should be true', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 int? variable;
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -157,9 +181,11 @@ int? variable;
     });
 
     test('isNullable should be false', () {
-      final CompilationUnit unit = parseString(content: '''
+      final CompilationUnit unit = parseString(
+        content: '''
 int variable = 0;
-''').unit;
+''',
+      ).unit;
 
       final TypeAnnotation? typeAnnotation =
           (unit.declarations.first as TopLevelVariableDeclaration).variables.type;
@@ -170,10 +196,12 @@ int variable = 0;
   });
 
   test('prefix', () {
-    final CompilationUnit unit = parseString(content: '''
+    final CompilationUnit unit = parseString(
+      content: '''
 import './models.dart' as models;
 models.User variable = models.User();
-''').unit;
+''',
+    ).unit;
 
     final TypeAnnotation? typeAnnotation =
         (unit.declarations.first as TopLevelVariableDeclaration).variables.type;

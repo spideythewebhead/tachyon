@@ -76,7 +76,8 @@ class ConsoleLogger extends Logger {
 
     writeln(line);
     writeln(
-      header.title //
+      header
+          .title //
           .padLeft((header.title.length + header.lineLength) ~/ 2)
           .blue()
           .bold(),

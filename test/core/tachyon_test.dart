@@ -61,11 +61,13 @@ file_generation_paths:
             .having(
               (TachyonConfig cfg) => cfg.fileGenerationPaths.map((Glob glob) => glob.pattern),
               'should have 3 paths, "lib/a.dart","lib/b.dart","lib/models/**"',
-              containsAll(<Glob>[
-                Glob('lib/a.dart'),
-                Glob('lib/b.dart'),
-                Glob('lib/models/**'),
-              ].map((Glob glob) => glob.pattern)),
+              containsAll(
+                <Glob>[
+                  Glob('lib/a.dart'),
+                  Glob('lib/b.dart'),
+                  Glob('lib/models/**'),
+                ].map((Glob glob) => glob.pattern),
+              ),
             ),
       );
     });
@@ -132,7 +134,7 @@ file_generation_paths:
           const ExternalPackageConfig(
             name: 'app',
             fileGenerationPaths: <Glob>[],
-          )
+          ),
         ],
       );
 
@@ -144,7 +146,7 @@ file_generation_paths:
             rootUri: Uri.parse('../packages/app'),
             packageUri: Uri.parse('lib/'),
             languageVersion: '3.0',
-          )
+          ),
         ],
       );
 
@@ -152,13 +154,14 @@ file_generation_paths:
         ..createSync(recursive: true)
         ..writeAsStringSync('');
 
-      final File externalPackageDartFile = projectDir
-          .childDirectory('packages')
-          .childDirectory('app')
-          .childDirectory('lib')
-          .childFile('app.dart')
-        ..createSync(recursive: true)
-        ..writeAsStringSync('');
+      final File externalPackageDartFile =
+          projectDir
+              .childDirectory('packages')
+              .childDirectory('app')
+              .childDirectory('lib')
+              .childFile('app.dart')
+            ..createSync(recursive: true)
+            ..writeAsStringSync('');
 
       final Tachyon tachyon = Tachyon(
         projectDir: projectDir,
@@ -240,10 +243,12 @@ file_generation_paths:
         Tachyon.fileSystem
             .file(path.join(_kProjectDirPath, 'lib', 'a.gen.dart'))
             .readAsStringSync(),
-        equals((StringBuffer()
-              ..write(generateHeaderForPartFile('a.dart'))
-              ..writeln('// THIS IS A TEST'))
-            .toString()),
+        equals(
+          (StringBuffer()
+                ..write(generateHeaderForPartFile('a.dart'))
+                ..writeln('// THIS IS A TEST'))
+              .toString(),
+        ),
       );
     });
   });
@@ -251,9 +256,9 @@ file_generation_paths:
   group('watchProject', () {
     setUp(() {
       Tachyon.resetFileSystem();
-      projectDir = Tachyon.fileSystem
-          .directory(path.join(io.Directory.current.path, 'test', '.tmp'))
-        ..createSync(recursive: true);
+      projectDir = Tachyon.fileSystem.directory(
+        path.join(io.Directory.current.path, 'test', '.tmp'),
+      )..createSync(recursive: true);
 
       _createCommonTachyonYaml(projectPath: projectDir.path);
       _createCommonPackageConfigJson(projectPath: projectDir.path);
@@ -265,20 +270,24 @@ file_generation_paths:
         logger: _logger,
       );
 
-      await tachyon.watchProject(onReady: () async {
-        final File fileA = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.dart'));
+      await tachyon.watchProject(
+        onReady: () async {
+          final File fileA = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.dart'));
 
-        tachyon.addWatchRebuildFinishedHook(expectAsync0(() async {
-          expect(
-            tachyon.parsedFilesPaths,
-            containsAllInOrder(<String>[fileA.path]),
+          tachyon.addWatchRebuildFinishedHook(
+            expectAsync0(() async {
+              expect(
+                tachyon.parsedFilesPaths,
+                containsAllInOrder(<String>[fileA.path]),
+              );
+
+              await tachyon.dispose();
+            }),
           );
 
-          await tachyon.dispose();
-        }));
-
-        fileA.createSync(recursive: true);
-      });
+          fileA.createSync(recursive: true);
+        },
+      );
     });
 
     test('Deletes part file when main file is deleted', () async {
@@ -295,20 +304,25 @@ file_generation_paths:
         (CompilationUnit compilationUnit, String absoluteFilePath) async => '// THIS IS A TEST',
       );
 
-      await tachyon.watchProject(onReady: () async {
-        final File fileAGen =
-            Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'a.gen.dart'));
-        expect(fileAGen.existsSync(), isTrue);
+      await tachyon.watchProject(
+        onReady: () async {
+          final File fileAGen = Tachyon.fileSystem.file(
+            path.join(projectDir.path, 'lib', 'a.gen.dart'),
+          );
+          expect(fileAGen.existsSync(), isTrue);
 
-        tachyon.addWatchRebuildFinishedHook(expectAsync0(() async {
-          expect(fileA.existsSync(), isFalse);
-          expect(fileAGen.existsSync(), isFalse);
+          tachyon.addWatchRebuildFinishedHook(
+            expectAsync0(() async {
+              expect(fileA.existsSync(), isFalse);
+              expect(fileAGen.existsSync(), isFalse);
 
-          await tachyon.dispose();
-        }));
+              await tachyon.dispose();
+            }),
+          );
 
-        fileA.deleteSync();
-      });
+          fileA.deleteSync();
+        },
+      );
     });
 
     test('When a new import is added, it is added as dependency', () async {
@@ -329,24 +343,28 @@ file_generation_paths:
         (CompilationUnit compilationUnit, String absoluteFilePath) async => '// THIS IS A TEST',
       );
 
-      await tachyon.watchProject(onReady: () async {
-        final File fileC = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'c.dart'))
-          ..createSync(recursive: true)
-          ..writeAsStringSync('');
+      await tachyon.watchProject(
+        onReady: () async {
+          final File fileC = Tachyon.fileSystem.file(path.join(projectDir.path, 'lib', 'c.dart'))
+            ..createSync(recursive: true)
+            ..writeAsStringSync('');
 
-        tachyon.addWatchRebuildFinishedHook(expectAsync0(() async {
-          expect(
-            tachyon.packagesDependencyGraph.hasDependency(fileB.path, fileC.path),
-            isTrue,
+          tachyon.addWatchRebuildFinishedHook(
+            expectAsync0(() async {
+              expect(
+                tachyon.packagesDependencyGraph.hasDependency(fileB.path, fileC.path),
+                isTrue,
+              );
+
+              await tachyon.dispose();
+            }),
           );
 
-          await tachyon.dispose();
-        }));
-
-        final IOSink fd = fileB.openWrite(mode: FileMode.append)..write("import 'c.dart';");
-        await fd.flush();
-        await fd.close();
-      });
+          final IOSink fd = fileB.openWrite(mode: FileMode.append)..write("import 'c.dart';");
+          await fd.flush();
+          await fd.close();
+        },
+      );
     });
   });
 

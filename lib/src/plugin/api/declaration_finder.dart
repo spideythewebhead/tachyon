@@ -14,11 +14,11 @@ class TachyonDeclarationFinder {
     required SendPort mainSendPort,
     required SendPort pluginSendPort,
     required String targetFilePath,
-  })  : _idGenerator = idGenerator,
-        _stream = apiMessageStream,
-        _mainSendPort = mainSendPort,
-        _pluginSendPort = pluginSendPort,
-        _targetFilePath = targetFilePath;
+  }) : _idGenerator = idGenerator,
+       _stream = apiMessageStream,
+       _mainSendPort = mainSendPort,
+       _pluginSendPort = pluginSendPort,
+       _targetFilePath = targetFilePath;
 
   final SimpleIdGenerator _idGenerator;
   final Stream<ApiMessage> _stream;
@@ -46,16 +46,19 @@ class TachyonDeclarationFinder {
   }) async {
     final String messageId = _idGenerator.getNext();
 
-    _mainSendPort.send(FindDeclarationApiMessage(
-      id: messageId,
-      name: name,
-      targetFilePath: _targetFilePath,
-      sendPort: _pluginSendPort,
-      type: findDeclarationType,
-    ).toJson());
+    _mainSendPort.send(
+      FindDeclarationApiMessage(
+        id: messageId,
+        name: name,
+        targetFilePath: _targetFilePath,
+        sendPort: _pluginSendPort,
+        type: findDeclarationType,
+      ).toJson(),
+    );
 
-    final ApiMessage message =
-        await _stream.firstWhere((ApiMessage message) => message.id == messageId);
+    final ApiMessage message = await _stream.firstWhere(
+      (ApiMessage message) => message.id == messageId,
+    );
 
     if (message is FindDeclarationResultApiMessage) {
       final String? absoluteFilePath = message.matchFilePath;

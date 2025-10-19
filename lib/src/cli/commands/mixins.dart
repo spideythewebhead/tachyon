@@ -9,16 +9,18 @@ mixin UtilsCommandMixin on Command<dynamic> {
   Directory get directory;
 
   void ensureHasPubspec() {
-    final bool hasPubspecYaml =
-        _hasFileInDirectory((File file) => path.basename(file.path) == kPubspecYamlFileName);
+    final bool hasPubspecYaml = _hasFileInDirectory(
+      (File file) => path.basename(file.path) == kPubspecYamlFileName,
+    );
     if (!hasPubspecYaml) {
       throw const PubspecYamlNotFoundException();
     }
   }
 
   void ensureHasTachyonConfig() {
-    final bool hasTachyonConfig =
-        _hasFileInDirectory((File file) => path.basename(file.path) == kTachyonConfigFileName);
+    final bool hasTachyonConfig = _hasFileInDirectory(
+      (File file) => path.basename(file.path) == kTachyonConfigFileName,
+    );
     if (!hasTachyonConfig) {
       throw const TachyonConfigNotFoundException();
     }

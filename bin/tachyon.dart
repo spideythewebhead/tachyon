@@ -32,7 +32,8 @@ Future<void> main(List<String> args) async {
       stdout
         ..writeln('No ${kPubspecYamlFileName.cyan().bold()} found.')
         ..writeln(
-            'Run this command on the root folder of your project. Are you sure this is a dart/flutter project?');
+          'Run this command on the root folder of your project. Are you sure this is a dart/flutter project?',
+        );
     } else if (e is DartToolPackageConfigNotFoundException) {
       stdout.writeln('Run "${Platform.executable} pub get" before running this tool.');
     } else if (e is PackageNotFoundException) {
@@ -51,7 +52,8 @@ Future<void> main(List<String> args) async {
       stdout
         ..writeln('No ${kTachyonConfigFileName.cyan().bold()} found.')
         ..writeln(
-            'Run this command on the root folder of your project or create a $kTachyonConfigFileName file.');
+          'Run this command on the root folder of your project or create a $kTachyonConfigFileName file.',
+        );
     }
     exitCode = 1;
   } on UsageException catch (e) {

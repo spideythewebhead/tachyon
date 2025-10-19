@@ -45,15 +45,15 @@ void main() {
                   'name': 'package_1',
                   'rootUri': 'file://${projectDir.path}/package_1',
                   'packageUri': 'lib/',
-                  'languageVersion': '3.0'
+                  'languageVersion': '3.0',
                 },
                 <String, String>{
                   'name': 'app_utils',
                   'rootUri': '../../packages/app_utils',
                   'packageUri': 'lib/',
-                  'languageVersion': '3.0'
+                  'languageVersion': '3.0',
                 },
-              ]
+              ],
             }),
           );
 
@@ -121,7 +121,7 @@ void main() {
                   'rootUri': 'file:///home/pub.dev/tachyon',
                   'packageUri': 'lib/',
                   'languageVersion': '3.0',
-                }
+                },
               ],
             }),
           );
@@ -144,7 +144,7 @@ void main() {
                   'rootUri': '../../tachyon',
                   'packageUri': 'lib/',
                   'languageVersion': '3.0',
-                }
+                },
               ],
             }),
           );
