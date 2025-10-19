@@ -15,9 +15,9 @@ class CompileCommand extends BaseCommand with UtilsCommandMixin {
     required super.logger,
     required this.directory,
   }) : _tachyon = Tachyon(
-          projectDir: directory,
-          logger: logger,
-        );
+         projectDir: directory,
+         logger: logger,
+       );
 
   @override
   final Directory directory;
@@ -49,8 +49,9 @@ class CompileCommand extends BaseCommand with UtilsCommandMixin {
       exit(1);
     }
 
-    String? tachyonDirectoryPath =
-        PackageResolver.getTachyonDirectoryPath(_tachyon.projectDir.path);
+    String? tachyonDirectoryPath = PackageResolver.getTachyonDirectoryPath(
+      _tachyon.projectDir.path,
+    );
 
     if (tachyonDirectoryPath == null) {
       logger.error('Failed to find "tachyon.dart" to compile.');
@@ -65,8 +66,20 @@ class CompileCommand extends BaseCommand with UtilsCommandMixin {
           .cloneTachyonToTemporary(Tachyon.fileSystem.systemTempDirectory.path)
           .path;
 
-      cleanUp =
-          () => Tachyon.fileSystem.directory(tachyonDirectoryPath).deleteSync(recursive: true);
+      final ProcessResult pubGetResult = Process.runSync(
+        Platform.resolvedExecutable,
+        <String>['pub', 'get'],
+        workingDirectory: tachyonDirectoryPath,
+      );
+
+      if (pubGetResult.exitCode != 0) {
+        logger.error('Failed to run "dart pub get" on tachyon');
+        exit(pubGetResult.exitCode);
+      }
+
+      cleanUp = () {
+        Tachyon.fileSystem.directory(tachyonDirectoryPath).deleteSync(recursive: true);
+      };
     }
 
     try {
@@ -102,16 +115,16 @@ extension on Directory {
     Glob('.fvm', recursive: true),
     Glob('.dart_tool', recursive: true),
     Glob('test', recursive: true),
-    Glob('example', recursive: true)
+    Glob('example', recursive: true),
   ];
 
   Directory cloneTachyonToTemporary(String to) {
     final String inDirectoryPath = absolute.path;
 
     // Create root folder
-    final Directory outDirectory = Tachyon.fileSystem
-        .directory(path.join(to, path.basename(inDirectoryPath)))
-      ..createSync(recursive: true);
+    final Directory outDirectory = Tachyon.fileSystem.directory(
+      path.join(to, path.basename(inDirectoryPath)),
+    )..createSync(recursive: true);
 
     for (final FileSystemEntity file in listSync(recursive: true, followLinks: false)) {
       final String pathRelativeToInDirectory = path.relative(file.path, from: inDirectoryPath);
