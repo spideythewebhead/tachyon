@@ -31,7 +31,7 @@ class TachyonDartType {
     if (typeAnnotation is NamedType) {
       if (typeAnnotation.importPrefix != null) {
         prefix = typeAnnotation.importPrefix!.name.lexeme;
-        nameToken = typeAnnotation.name2;
+        nameToken = typeAnnotation.name;
       }
     }
     nameToken ??= typeAnnotation?.beginToken;
