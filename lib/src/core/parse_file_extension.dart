@@ -1,7 +1,7 @@
 import 'package:analyzer/dart/analysis/features.dart';
 import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/analysis/utilities.dart';
-import 'package:analyzer/error/error.dart';
+import 'package:analyzer/diagnostic/diagnostic.dart';
 import 'package:tachyon/src/core/tachyon.dart';
 import 'package:tachyon/src/logger/ansi.dart';
 
@@ -30,12 +30,12 @@ extension ParseFileX on String {
 class ParseException implements Exception {
   const ParseException(this.errors);
 
-  final List<AnalysisError> errors;
+  final List<Diagnostic> errors;
 
   @override
   String toString() {
     return errors
-        .map((AnalysisError error) {
+        .map((Diagnostic error) {
           final StringBuffer buffer = StringBuffer()..writeln();
           buffer
             ..writeln('Severity: ${error.severity.name.capitalize().red()}')
@@ -43,7 +43,8 @@ class ParseException implements Exception {
             ..writeln(error.source.fullName.bold())
             ..write('Error: ')
             ..writeln(error.message.red());
-          if (error.correction != null) {
+
+          if (error.correctionMessage != null) {
             buffer
               ..write('Possible solution: ')
               ..writeln(error.correctionMessage!.green());
