@@ -332,8 +332,8 @@ class Tachyon {
   DartFormatter getFormatter() {
     final AnalysisOptionsConfig analysisOptions = getAnalysisOptions();
     return _cachedDartFormatter ??= DartFormatter(
-      pageWidth: analysisOptions.formatter.pageWidth ?? getConfig().generatedFileLineLength,
-      trailingCommas: switch (analysisOptions.formatter.trailingCommas) {
+      pageWidth: analysisOptions.formatter?.pageWidth ?? getConfig().generatedFileLineLength,
+      trailingCommas: switch (analysisOptions.formatter?.trailingCommas) {
         null => null,
         FormatterTrailingCommasOption.preserve => TrailingCommas.preserve,
       },
