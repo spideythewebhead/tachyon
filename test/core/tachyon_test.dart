@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io' as io show Directory;
 
 import 'package:file/file.dart';
@@ -11,10 +10,10 @@ import 'package:tachyon/src/core/tachyon_config.dart';
 import 'package:tachyon/tachyon.dart';
 import 'package:test/test.dart';
 
+import '../common_yaml_creators.dart';
 import '../set_dart_sdk_version.dart';
 import '../utils.dart';
 
-const String _kProjectDirPath = '/home/user/project';
 const Logger _logger = NoOpLogger();
 
 void main() {
@@ -31,11 +30,13 @@ void main() {
   group('getConfig', () {
     setUp(() {
       Tachyon.fileSystem = MemoryFileSystem.test();
-      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
+      projectDir = Tachyon.fileSystem.directory(kProjectDirPath)..createSync(recursive: true);
+
+      createCommonAnalysisOptionsYaml();
     });
 
     test('Returns instance from "tachyon_config.yaml"', () {
-      Tachyon.fileSystem.file(path.join(_kProjectDirPath, kTachyonConfigFileName))
+      Tachyon.fileSystem.file(path.join(kProjectDirPath, kTachyonConfigFileName))
         ..createSync()
         ..writeAsStringSync('''
 generated_file_line_length: 100
@@ -76,19 +77,21 @@ file_generation_paths:
   group('indexProject', () {
     setUp(() {
       Tachyon.fileSystem = MemoryFileSystem.test();
-      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
-      _createCommonTachyonYaml();
-      _createCommonPackageConfigJson();
+      projectDir = Tachyon.fileSystem.directory(kProjectDirPath)..createSync(recursive: true);
+
+      createCommonAnalysisOptionsYaml();
+      createCommonTachyonYaml();
+      createCommonPackageConfigJson();
     });
 
     test('Indexes 2 files in project', () async {
-      Tachyon.fileSystem.directory(path.join(_kProjectDirPath, 'lib')).createSync();
+      Tachyon.fileSystem.directory(path.join(kProjectDirPath, 'lib')).createSync();
 
-      Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'a.dart'))
+      Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'a.dart'))
         ..createSync()
         ..writeAsStringSync('');
 
-      Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'b.dart'))
+      Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'b.dart'))
         ..createSync()
         ..writeAsStringSync('');
 
@@ -102,15 +105,15 @@ file_generation_paths:
     });
 
     test('Sets "b.dart" as dependency of "a.dart"', () async {
-      Tachyon.fileSystem.directory(path.join(_kProjectDirPath, 'lib')).createSync();
+      Tachyon.fileSystem.directory(path.join(kProjectDirPath, 'lib')).createSync();
 
-      final File fileA = Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'a.dart'))
+      final File fileA = Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'a.dart'))
         ..createSync()
         ..writeAsStringSync('''
           import 'b.dart';
         ''');
 
-      final File fileB = Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'b.dart'))
+      final File fileB = Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'b.dart'))
         ..createSync()
         ..writeAsStringSync('');
 
@@ -128,7 +131,9 @@ file_generation_paths:
     });
 
     test('Indexes external package', () async {
-      _createCommonTachyonYaml(
+      createCommonAnalysisOptionsYaml();
+
+      createCommonTachyonYaml(
         projectPath: projectDir.path,
         externalPackages: <ExternalPackageConfig>[
           const ExternalPackageConfig(
@@ -138,7 +143,7 @@ file_generation_paths:
         ],
       );
 
-      _createCommonPackageConfigJson(
+      createCommonPackageConfigJson(
         projectPath: projectDir.path,
         packages: <PackageInfo>[
           PackageInfo(
@@ -180,21 +185,23 @@ file_generation_paths:
   group('buildProject', () {
     setUp(() {
       Tachyon.fileSystem = MemoryFileSystem.test();
-      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
-      _createCommonTachyonYaml();
-      _createCommonPackageConfigJson();
+      projectDir = Tachyon.fileSystem.directory(kProjectDirPath)..createSync(recursive: true);
+
+      createCommonAnalysisOptionsYaml();
+      createCommonTachyonYaml();
+      createCommonPackageConfigJson();
     });
 
     test('Does not generate file if only the header is the content', () async {
-      Tachyon.fileSystem.directory(path.join(_kProjectDirPath, 'lib')).createSync();
+      Tachyon.fileSystem.directory(path.join(kProjectDirPath, 'lib')).createSync();
 
-      Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'a.dart'))
+      Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'a.dart'))
         ..createSync()
         ..writeAsStringSync('''
           import 'b.dart';
         ''');
 
-      Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'b.dart'))
+      Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'b.dart'))
         ..createSync()
         ..writeAsStringSync('');
 
@@ -206,20 +213,20 @@ file_generation_paths:
       await tachyon.buildProject();
 
       expect(
-        Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'a.gen.dart')).existsSync(),
+        Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'a.gen.dart')).existsSync(),
         isFalse,
       );
 
       expect(
-        Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'b.gen.dart')).existsSync(),
+        Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'b.gen.dart')).existsSync(),
         isFalse,
       );
     });
 
     test('Generates code using "addCodeGenerationHook" (without plugin)', () async {
-      Tachyon.fileSystem.directory(path.join(_kProjectDirPath, 'lib')).createSync();
+      Tachyon.fileSystem.directory(path.join(kProjectDirPath, 'lib')).createSync();
 
-      Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'a.dart'))
+      Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'a.dart'))
         ..createSync()
         ..writeAsStringSync('');
 
@@ -235,14 +242,12 @@ file_generation_paths:
       await tachyon.buildProject();
 
       expect(
-        Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'a.gen.dart')).existsSync(),
+        Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'a.gen.dart')).existsSync(),
         isTrue,
       );
 
       expect(
-        Tachyon.fileSystem
-            .file(path.join(_kProjectDirPath, 'lib', 'a.gen.dart'))
-            .readAsStringSync(),
+        Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'a.gen.dart')).readAsStringSync(),
         equals(
           (StringBuffer()
                 ..write(generateHeaderForPartFile('a.dart'))
@@ -260,8 +265,9 @@ file_generation_paths:
         path.join(io.Directory.current.path, 'test', '.tmp'),
       )..createSync(recursive: true);
 
-      _createCommonTachyonYaml(projectPath: projectDir.path);
-      _createCommonPackageConfigJson(projectPath: projectDir.path);
+      createCommonAnalysisOptionsYaml(projectPath: projectDir.path);
+      createCommonTachyonYaml(projectPath: projectDir.path);
+      createCommonPackageConfigJson(projectPath: projectDir.path);
     });
 
     test('Indexes newly created file', () async {
@@ -371,9 +377,11 @@ file_generation_paths:
   group('dispose', () {
     setUp(() {
       Tachyon.fileSystem = MemoryFileSystem.test();
-      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
-      _createCommonTachyonYaml();
-      _createCommonPackageConfigJson();
+      projectDir = Tachyon.fileSystem.directory(kProjectDirPath)..createSync(recursive: true);
+
+      createCommonAnalysisOptionsYaml();
+      createCommonTachyonYaml();
+      createCommonPackageConfigJson();
     });
 
     test('Verifies that dispose hook is called', () async {
@@ -391,13 +399,13 @@ file_generation_paths:
     });
 
     test('Clears resources', () async {
-      Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'a.dart'))
+      Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'a.dart'))
         ..createSync(recursive: true)
         ..writeAsStringSync('''
           import 'b.dart';
         ''');
 
-      Tachyon.fileSystem.file(path.join(_kProjectDirPath, 'lib', 'b.dart'))
+      Tachyon.fileSystem.file(path.join(kProjectDirPath, 'lib', 'b.dart'))
         ..createSync()
         ..writeAsStringSync('');
 
@@ -421,12 +429,14 @@ file_generation_paths:
   group('calculateDependentsWeights', () {
     setUp(() {
       Tachyon.fileSystem = MemoryFileSystem.test();
-      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
+      projectDir = Tachyon.fileSystem.directory(kProjectDirPath)..createSync(recursive: true);
+
+      createCommonAnalysisOptionsYaml();
     });
 
     test('Calculates the weights for non cyclic graph', () async {
-      _createCommonTachyonYaml();
-      _createCommonPackageConfigJson();
+      createCommonTachyonYaml();
+      createCommonPackageConfigJson();
 
       final File aDartFile = projectDir.childDirectory('lib').childFile('a.dart')
         ..createSync(recursive: true)
@@ -463,8 +473,8 @@ import 'c.dart';
     });
 
     test('Calculates the weights for a cyclic graph', () async {
-      _createCommonTachyonYaml();
-      _createCommonPackageConfigJson();
+      createCommonTachyonYaml();
+      createCommonPackageConfigJson();
 
       final File aDartFile = projectDir.childDirectory('lib').childFile('a.dart')
         ..createSync(recursive: true)
@@ -508,38 +518,4 @@ import 'c.dart';
       );
     });
   });
-}
-
-void _createCommonTachyonYaml({
-  String projectPath = _kProjectDirPath,
-  List<ExternalPackageConfig> externalPackages = const <ExternalPackageConfig>[],
-}) {
-  // json is valid syntax for YAML so this makes life easier
-  Tachyon.fileSystem.file(path.join(projectPath, kTachyonConfigFileName))
-    ..createSync(recursive: true)
-    ..writeAsStringSync(
-      json.encode(
-        TachyonConfig(
-          fileGenerationPaths: <Glob>[Glob('lib/**')],
-          generatedFileLineLength: 100,
-          externalPackages: <String, ExternalPackageConfig>{
-            for (final ExternalPackageConfig package in externalPackages) package.name: package,
-          },
-        ).toJson(),
-      ),
-    );
-}
-
-void _createCommonPackageConfigJson({
-  String projectPath = _kProjectDirPath,
-  List<PackageInfo> packages = const <PackageInfo>[],
-}) {
-  Tachyon.fileSystem.file(path.join(projectPath, kDartToolFolderName, 'package_config.json'))
-    ..createSync(recursive: true)
-    ..writeAsStringSync(
-      json.encode(<String, Object>{
-        'configVersion': 2,
-        'packages': packages,
-      }),
-    );
 }

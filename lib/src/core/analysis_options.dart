@@ -1,13 +1,15 @@
 class AnalysisOptionsConfig {
-  AnalysisOptionsConfig({required this.formatter});
+  AnalysisOptionsConfig({this.formatter});
 
   factory AnalysisOptionsConfig.fromJson(Map<dynamic, dynamic> json) {
     return AnalysisOptionsConfig(
-      formatter: FormatterOptionsConfig.fromJson(json['formatter']),
+      formatter: json['formatter'] == null
+          ? null
+          : FormatterOptionsConfig.fromJson(json['formatter']),
     );
   }
 
-  final FormatterOptionsConfig formatter;
+  final FormatterOptionsConfig? formatter;
 }
 
 class FormatterOptionsConfig {

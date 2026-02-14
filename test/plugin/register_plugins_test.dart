@@ -7,12 +7,12 @@ import 'package:tachyon/src/plugin/register_plugins.dart';
 import 'package:tachyon/tachyon.dart';
 import 'package:test/test.dart';
 
+import '../common_yaml_creators.dart';
 import '../plugin_project_creator.dart';
 import '../set_dart_sdk_version.dart';
 import '../test_project_creator.dart';
 import '../utils.dart';
 
-const String _kProjectDirPath = '/home/user/project';
 const Logger _logger = NoOpLogger();
 
 void main() {
@@ -29,7 +29,11 @@ void main() {
   group('registerPlugins', () {
     setUp(() {
       Tachyon.fileSystem = MemoryFileSystem.test();
-      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
+      projectDir = Tachyon.fileSystem.directory(kProjectDirPath)..createSync(recursive: true);
+
+      // createCommonTachyonYaml();
+      // createCommonPackageConfigJson();
+      // createCommonAnalysisOptionsYaml();
     });
 
     test('Registers 2 plugins and generates code', () async {
@@ -113,12 +117,13 @@ class Test {}
   group('compilePlugins', () {
     setUp(() {
       Tachyon.fileSystem = MemoryFileSystem.test();
-      projectDir = Tachyon.fileSystem.directory(_kProjectDirPath)..createSync(recursive: true);
+      projectDir = Tachyon.fileSystem.directory(kProjectDirPath)..createSync(recursive: true);
+
+      createCommonTachyonYaml();
+      createCommonAnalysisOptionsYaml();
     });
 
     test('Throws "DartToolPackageConfigNotFoundException"', () {
-      _createCommonTachyonYaml();
-
       final Tachyon tachyon = Tachyon(
         projectDir: projectDir,
         logger: _logger,
@@ -130,24 +135,4 @@ class Test {}
       );
     });
   });
-}
-
-void _createCommonTachyonYaml({
-  List<String>? plugins,
-}) {
-  StringBuffer pluginsCode = StringBuffer();
-  if (plugins != null) {
-    pluginsCode.writeln('plugins:');
-    for (final String pluginName in plugins) {
-      pluginsCode.writeln('  - $pluginName');
-    }
-  }
-  Tachyon.fileSystem.file(path.join(_kProjectDirPath, kTachyonConfigFileName))
-    ..createSync()
-    ..writeAsStringSync('''
-file_generation_paths:
-  - "lib/**"
-
-$pluginsCode
-''');
 }

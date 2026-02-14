@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:file/file.dart';
+import 'package:tachyon/src/dart_version.dart';
 import 'package:tachyon/tachyon.dart';
 import 'package:test/test.dart';
 
+import 'common_yaml_creators.dart';
 import 'utils.dart';
 
 Directory testProjectCreator({
@@ -26,20 +28,13 @@ Directory testProjectCreator({
 ''');
   }
 
-  StringBuffer tachyonPluginsBuffer = StringBuffer()..writeln('plugins:');
-  for (final String pluginName in pluginsNames) {
-    tachyonPluginsBuffer.writeln('''
-  - $pluginName
-''');
-  }
-
   projectDir.childFile('pubspec.yaml').writeAsStringSync('''
 name: plugins_tester
 version: 1.0.0
 publish_to: none
 
 environment:
-  sdk: ">=2.19.6"
+  sdk: ">=$dartSdkVersion"
 
 $dependenciesBuffer
 dev_dependencies:
@@ -47,17 +42,11 @@ dev_dependencies:
     path: ../..
 ''');
 
-  projectDir.childFile('tachyon_config.yaml')
-    ..createSync()
-    ..writeAsStringSync('''
-file_generation_paths:
-  - "lib/**"
-
-$tachyonPluginsBuffer
-''');
+  createCommonTachyonYaml(projectPath: projectDir.path, plugins: pluginsNames);
+  createCommonAnalysisOptionsYaml(projectPath: projectDir.path);
 
   Process.runSync(
-    'dart',
+    Platform.resolvedExecutable,
     <String>['pub', 'get'],
     workingDirectory: projectDir.path,
     runInShell: true,
