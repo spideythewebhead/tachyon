@@ -1,3 +1,8 @@
+## 0.4.0
+
+- Lax analyzer version supported range [#92](https://github.com/spideythewebhead/tachyon/issues/92)
+- Fix: Broken tests [#95](https://github.com/spideythewebhead/tachyon/issues/95)
+
 ## 0.4.0-dev.3
 
 - Fix not running `dart pub get` when cloning tachyon from pub cache [#88](https://github.com/spideythewebhead/tachyon/issues/88
@@ -104,7 +109,6 @@
 - Improve IsolateLogger batching multiple writes into 1 message
 - Improve documentation
 - Bug fixes
-
   - `findDartFileFromUri` (now `findDartFileFromDirectiveUri`) would return wrong path for a relative import/export
   - IsolateLogger not respecting severity when printing
 
